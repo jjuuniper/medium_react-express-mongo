@@ -33,47 +33,60 @@ npm start
 # Note: No test suite is currently configured
 ```
 
-### Docker Development
+### Docker Development (Multi-Container)
 ```bash
 # Copy environment template and configure
 cp .env.example .env
 # Edit .env with your desired configuration
 
-# Production deployment
+# Production deployment (all services)
 docker-compose up -d
 
-# Development with hot reload and debugging
+# Development with hot reload (all services)
 docker-compose -f docker-compose.dev.yml up
 
-# View logs
+# View logs for specific services
 docker-compose logs -f app
+docker-compose logs -f frontend
 docker-compose logs -f mongodb
 
-# Stop containers
+# Stop all containers
 docker-compose down
 
 # Stop and remove volumes (destroys data)
 docker-compose down -v
 
-# Build only the app container
+# Build specific containers
 docker-compose build app
+docker-compose build frontend
 
-# Execute commands in running container
+# Execute commands in running containers
 docker-compose exec app npm run dev
+docker-compose exec frontend npm run dev
 docker-compose exec mongodb mongosh
+
+# Scale services (production)
+docker-compose up -d --scale frontend=2
 ```
 
 ## Docker Architecture
 
 ### Container Setup
-The application is containerized using Docker with two separate services:
+The application uses a complete multi-container architecture with three services:
 
-**App Container (Node.js)**
+**Frontend Container (Next.js)**
+- Base image: `node:18-alpine`
+- Port: 3000 (exposed to host)
+- React Server Components + TypeScript
+- Hot reload in development mode
+- Standalone output for production
+
+**Backend Container (Express.js)**
 - Base image: `node:18-alpine`
 - Port: 4000 (exposed to host)
 - Health checks enabled
 - Non-root user for security
-- Optimized for production builds
+- Hot reload in development mode
 
 **Database Container (MongoDB)**
 - Base image: `mongo:6`
@@ -83,19 +96,34 @@ The application is containerized using Docker with two separate services:
 - Health checks enabled
 
 ### Container Networking
-- Custom Docker bridge network isolates containers
-- App connects to MongoDB using container name resolution
-- MongoDB not exposed to host in production (security)
-- Development mode optionally exposes MongoDB port for debugging
+- Custom Docker bridge network isolates all containers
+- Frontend connects to backend using container name resolution
+- Backend connects to MongoDB using container name resolution
+- Only frontend (3000) and backend (4000) ports exposed to host
+- MongoDB only accessible within container network (security)
+- CORS configured for container-to-container communication
 
 ### Environment Configuration
 Copy `.env.example` to `.env` and configure:
+
+**Backend Configuration:**
 - `MONGO_ROOT_USERNAME` - MongoDB admin username
 - `MONGO_ROOT_PASSWORD` - MongoDB admin password  
 - `MONGO_DB_NAME` - Database name
 - `ACCESS_TOKEN_SECRET` - JWT signing secret
 - `NODE_ENV` - Environment (development/production)
-- `PORT` - Application port (default: 4000)
+- `PORT` - Backend port (default: 4000)
+
+**Frontend Configuration:**
+Frontend environment is handled automatically via docker-compose:
+- `API_BASE_URL` - Points to backend container (http://app:4000/api)
+- `NODE_ENV` - Matches container environment
+
+### Access URLs
+- **Frontend**: http://localhost:3000 - Complete RealWorld application UI
+- **Backend API**: http://localhost:4000/api - REST API endpoints  
+- **Backend Root**: http://localhost:4000 - Basic HTML page
+- **MongoDB**: Internal only (not exposed to host)
 
 ## Architecture and Structure
 

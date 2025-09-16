@@ -53,6 +53,30 @@ services:
       - realworld-network-dev
     command: ["npm", "run", "dev"]
 
+  # Next.js Frontend Service (Development with hot reload)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: realworld-frontend-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      API_BASE_URL: http://app:4000/api
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot reloading
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - app
+    networks:
+      - realworld-network-dev
+    command: ["npm", "run", "dev"]
+
 # Named volumes for development data persistence
 volumes:
   mongodb_data_dev:

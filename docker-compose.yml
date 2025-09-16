@@ -51,6 +51,30 @@ services:
       retries: 3
       start_period: 30s
 
+  # Next.js Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: realworld-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://app:4000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - realworld-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 # Named volumes for data persistence
 volumes:
   mongodb_data:
