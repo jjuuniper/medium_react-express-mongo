@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server",
     "dev": "nodemon server",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +26,8 @@
     "slugify": "^1.6.5"
   },
   "devDependencies": {
+    "jest": "^29.0.0",
+    "supertest": "^6.3.0",
     "nodemon": "^2.0.20"
   }
 }
