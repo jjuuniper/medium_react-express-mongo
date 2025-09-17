@@ -4,10 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## **Required Project Philosophy**
 - Security is the number one priority. NEVER sacrifice security
-- ALWAYS leverage libraries, DO NOT "reinvent the wheel"
-- DO NOT over-engineer. Development should be precise and robust. The less code that is written the better
-- ALWAYS follow best practices, proper error handling, and compliance
 - Secrets should NEVER be exposed in plain text
+- ALWAYS leverage existing tools and libraries
+- NEVER "reinvent the wheel"
+- If there are tools and libraries that have needed functionliaty, use them, do not create a custom solution
+- ALWAYS prefer to properly leverage existing tools, libraries and frameworks
+- NEVER write custom code unless absolutely necessary
+- NEVER over-engineer
+- The less code that is written the better
+- Development should be precise and robust
+- ALWAYS follow programming and security best practices
+- ALWAYS implement proper error handling, and compliance
 
 ## Project Overview
 
