@@ -3,7 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## **Required Project Philosophy**
-- Security is the number one priority. NEVER sacrifice security
+- Security is the number one priority
+- NEVER compromise security at any point
 - Secrets should NEVER be exposed in plain text
 - ALWAYS leverage existing tools and libraries
 - NEVER "reinvent the wheel"
