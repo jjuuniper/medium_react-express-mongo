@@ -25,14 +25,21 @@ const registerUser = asyncHandler(async (req, res) => {
         "email": user.email
     };
 
-    const createdUser = await User.create(userObject);
-
-    if (createdUser) { // user object created successfully
+    try {
+        const createdUser = await User.create(userObject);
         res.status(201).json({
             user: createdUser.toUserResponse()
-        })
-    } else {
-        res.status(422).json({
+        });
+    } catch (error) {
+        // Handle mongoose validation errors (including unique constraint violations)
+        if (error.name === 'ValidationError') {
+            return res.status(422).json({
+                errors: error.errors
+            });
+        }
+
+        // Handle other database errors
+        return res.status(422).json({
             errors: {
                 body: "Unable to register a user"
             }

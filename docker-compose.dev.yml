@@ -10,9 +10,12 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
       MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-realworld}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-realworld}
     volumes:
       - mongodb_data_dev:/data/db
       - mongodb_config_dev:/data/configdb
+      # Mount initialization script to create test database
+      - ./backend/mongodb-init:/docker-entrypoint-initdb.d
     ports:
       # Expose MongoDB port for development debugging
       - "27017:27017"
@@ -76,6 +79,31 @@ services:
     networks:
       - realworld-network-dev
     command: ["npm", "run", "dev"]
+
+  # Test Service (Dedicated test container)
+  test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: realworld-test
+    environment:
+      NODE_ENV: test
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET_TEST:-test-secret-key-for-testing}
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-realworld}
+      DATABASE_URI: mongodb://mongodb:27017/realworld_test
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - realworld-network-dev
+    depends_on:
+      - mongodb
+    profiles:
+      - test
+    command: ["npm", "test"]
 
 # Named volumes for development data persistence
 volumes:
