@@ -1,0 +1,83 @@
+global:
+  namespace: realworld
+  environment: production
+
+replicaCount:
+  backend: 2
+  frontend: 2
+
+image:
+  backend:
+    repository: realworld-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: realworld-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+
+mongodb:
+  enabled: true
+  image: mongo:6
+  replicas: 1
+  storage: 5Gi
+  storageClass: ""
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+  auth:
+    # Default empty values - override in environment-specific files
+    username: ""
+    password: ""
+    database: realworld
+
+backend:
+  enabled: true
+  port: 4000
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+  env:
+    # Default empty values - override in environment-specific files
+    nodeEnv: production
+    jwtSecret: ""
+
+frontend:
+  enabled: true
+  port: 3000
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+  env:
+    nodeEnv: production
+
+ingress:
+  enabled: true
+  className: nginx
+  host: realworld.local
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+  tls: []
+
+serviceAccount:
+  create: true
+  name: realworld-serviceaccount
+
+networkPolicy:
+  enabled: true
+
+rbac:
+  create: true
