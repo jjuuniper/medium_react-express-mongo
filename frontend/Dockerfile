@@ -12,8 +12,21 @@ RUN npm ci && npm cache clean --force
 # Development stage
 FROM base AS development
 ENV NODE_ENV=development
+
+# Create non-root user for security (same as production)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Copy application code with proper ownership
+COPY --chown=nextjs:nodejs . .
+
+# Create .next directory with proper ownership for Next.js dev mode
+RUN mkdir -p .next && chown -R nextjs:nodejs .next
+
+# Switch to non-root user
+USER nextjs
+
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 

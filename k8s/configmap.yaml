@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: realworld-config
+  namespace: realworld
+data:
+  NODE_ENV: "production"
+  PORT: "4000"
+  MONGO_DB_NAME: "realworld"
+  API_BASE_URL: "http://backend:4000/api"
+  FRONTEND_URL: "http://frontend:3000"

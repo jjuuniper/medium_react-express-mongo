@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: realworld
+  labels:
+    app: backend
+    component: api
+spec:
+  ports:
+  - port: 4000
+    targetPort: 4000
+    name: http
+  selector:
+    app: backend
+  type: ClusterIP

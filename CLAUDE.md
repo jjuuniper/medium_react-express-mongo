@@ -172,6 +172,85 @@ All API routes follow the RealWorld specification:
 - Uses bcrypt for password hashing
 - Implements slugification for article URLs
 
+## Kubernetes Deployment
+
+### Kubernetes Manifests (`k8s/`)
+Raw Kubernetes YAML files for manual deployment:
+```bash
+# Build images with proper names
+docker-compose build
+
+# Deploy all components
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/secrets/secret-dev.yaml  # Demo secrets
+kubectl apply -f k8s/mongodb/ k8s/backend/ k8s/frontend/
+kubectl apply -f k8s/ingress.yaml
+
+# Access application
+kubectl port-forward -n realworld svc/frontend 3000:3000
+```
+
+### Helm Charts (`helm/realworld/`)
+Templated deployments with environment-specific configurations:
+```bash
+# Build development images first
+docker build --target development -t realworld-backend:dev ./backend
+docker build --target development -t realworld-frontend:dev ./frontend
+
+# Development deployment (demo secrets)
+helm install realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
+
+# Production deployment (secure secrets)
+helm install realworld ./helm/realworld \
+  -f ./helm/realworld/values.yaml \
+  -f ./helm/realworld/values-prod.yaml \
+  -f ./helm/realworld/values-local-secrets.yaml  # Local secrets file (gitignored)
+
+# Access application via port forwarding
+kubectl port-forward svc/frontend 3000:3000 -n realworld
+# Then visit: http://localhost:3000
+```
+
+### Development Image Configuration
+- **Backend**: Non-root user, devDependencies included, nodemon for hot reload
+- **Frontend**: Non-root user, Next.js dev mode with `.next` directory pre-created
+- **Memory Limits**: Backend (256Mi), Frontend (1Gi), MongoDB (512Mi) for dev mode
+- **Image Pull**: `pullPolicy: Always` ensures latest builds are used
+
+### Secret Management
+- **Development**: Demo secrets in `values-dev.yaml` (safe to commit)
+- **Production**: External secrets via local files or CI/CD environment variables
+- **Security**: All production secrets protected by `.gitignore` patterns
+- **StatefulSet DNS**: Uses `mongodb-0.mongodb` for headless service resolution
+
+### Troubleshooting & Restart Deployments
+```bash
+# Check pod status and issues
+kubectl get pods -n realworld
+kubectl describe pod <pod-name> -n realworld
+kubectl logs <pod-name> -n realworld
+
+# Rolling restart (zero downtime)
+kubectl rollout restart deployment -n realworld
+kubectl rollout restart statefulset/mongodb -n realworld
+
+# Complete restart (when upgrade fails)
+helm uninstall realworld
+helm install realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
+
+# Force image updates (rebuild images first)
+helm upgrade realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
+
+# Check status
+kubectl get pods -n realworld -w
+```
+
+### Common Issues & Solutions
+- **OOMKilled**: Increase memory limits in values-dev.yaml
+- **ImagePullBackOff**: Rebuild images with correct tags (:dev for development)
+- **CrashLoopBackOff**: Check logs for permission issues, authentication failures
+- **Probe failures**: MongoDB probes need 20s timeout with authentication
+
 ## Environment Variables Required
 - `DATABASE_URI` - MongoDB connection string
 - `access_token_secret` - JWT signing secret

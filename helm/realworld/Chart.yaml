@@ -1,0 +1,17 @@
+apiVersion: v2
+name: realworld
+description: RealWorld application Helm chart for Kubernetes deployment
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+- name: Developer
+  email: developer@example.com
+keywords:
+- realworld
+- blog
+- express
+- nextjs
+- mongodb
+sources:
+- https://github.com/gothinkster/realworld

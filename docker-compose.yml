@@ -30,6 +30,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: realworld-backend:latest
     container_name: realworld-app
     restart: unless-stopped
     environment:
@@ -56,6 +57,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: realworld-frontend:latest
     container_name: realworld-frontend
     restart: unless-stopped
     environment:

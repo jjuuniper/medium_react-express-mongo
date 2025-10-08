@@ -1,3 +1,22 @@
 .env
 /backend/coverage
 /.claude
+
+# Security: Don't commit secrets
+values-secrets.yaml
+*-secrets.yaml
+*.secrets.yaml
+values-local-*.yaml
+.secrets/
+
+# Environment-specific secret files
+/k8s/secrets/secret-prod.yaml
+/k8s/secrets/secret-staging.yaml
+/helm/realworld/values-staging.yaml
+/helm/realworld/values-local-secrets.yaml
+
+# Generated credential files
+*.key
+*.pem
+*.crt
+.vault-token

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: realworld-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  NODE_ENV: {{ .Values.backend.env.nodeEnv | quote }}
+  PORT: {{ .Values.backend.port | quote }}
+  MONGO_DB_NAME: {{ .Values.mongodb.auth.database | quote }}
+  API_BASE_URL: "http://backend:{{ .Values.backend.port }}/api"
+  FRONTEND_URL: "http://frontend:{{ .Values.frontend.port }}"

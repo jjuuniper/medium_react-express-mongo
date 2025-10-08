@@ -1,0 +1,61 @@
+global:
+  environment: production
+
+replicaCount:
+  backend: 3
+  frontend: 3
+
+mongodb:
+  storage: 20Gi
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  auth:
+    # Production secrets should be provided via:
+    # 1. Local secrets file: values-local-secrets.yaml (gitignored)
+    # 2. CI/CD injection: --set mongodb.auth.password="$MONGO_PASSWORD"
+    # 3. External secret management (Vault, etc.)
+    username: ""  # Override required
+    password: ""  # Override required
+    database: realworld
+
+backend:
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 400m
+  env:
+    nodeEnv: production
+    # Production JWT secret should be provided via:
+    # 1. Local secrets file: values-local-secrets.yaml (gitignored)
+    # 2. CI/CD injection: --set backend.env.jwtSecret="$JWT_SECRET"
+    # 3. External secret management (Vault, etc.)
+    jwtSecret: ""  # Override required
+
+frontend:
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 400m
+  env:
+    nodeEnv: production
+
+ingress:
+  host: realworld.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  tls:
+  - secretName: realworld-tls
+    hosts:
+    - realworld.example.com

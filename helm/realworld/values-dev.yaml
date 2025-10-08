@@ -1,0 +1,50 @@
+global:
+  environment: development
+
+replicaCount:
+  backend: 1
+  frontend: 1
+
+image:
+  backend:
+    tag: dev
+    pullPolicy: Always
+  frontend:
+    tag: dev
+    pullPolicy: Always
+
+mongodb:
+  storage: 2Gi
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+  auth:
+    username: admin
+    password: demo123
+    database: realworld
+
+backend:
+  env:
+    nodeEnv: development
+    jwtSecret: dev-jwt-secret-change-in-production
+
+frontend:
+  env:
+    nodeEnv: development
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 100m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+
+ingress:
+  host: realworld-dev.local
+
+networkPolicy:
+  enabled: false
