@@ -8,17 +8,19 @@ replicaCount:
 image:
   backend:
     tag: dev
+    pullPolicy: Always
   frontend:
     tag: dev
+    pullPolicy: Always
 
 mongodb:
   storage: 2Gi
   resources:
     requests:
-      memory: 128Mi
+      memory: 256Mi
       cpu: 100m
     limits:
-      memory: 256Mi
+      memory: 512Mi
       cpu: 200m
   auth:
     username: admin
@@ -33,6 +35,13 @@ backend:
 frontend:
   env:
     nodeEnv: development
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 100m
+    limits:
+      memory: 1Gi
+      cpu: 500m
 
 ingress:
   host: realworld-dev.local

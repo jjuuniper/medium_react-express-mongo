@@ -10,8 +10,17 @@ FROM base AS development
 ENV NODE_ENV=development
 # Install all dependencies (including devDependencies)
 RUN npm ci && npm cache clean --force
-# Copy application code
-COPY . .
+
+# Create non-root user for security (same as production)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Copy application code with proper ownership
+COPY --chown=nodejs:nodejs . .
+
+# Switch to non-root user
+USER nodejs
+
 # Expose the port the app runs on
 EXPOSE 4000
 # Expose debugger port for development

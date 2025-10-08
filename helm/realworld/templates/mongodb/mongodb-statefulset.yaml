@@ -59,21 +59,21 @@ spec:
             command:
             - bash
             - -c
-            - "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet"
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+            - "echo 'db.runCommand(\"ping\").ok' | mongosh mongodb://{{ .Values.mongodb.auth.username }}:{{ .Values.mongodb.auth.password }}@localhost:27017/admin --quiet"
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 20
+          failureThreshold: 5
         readinessProbe:
           exec:
             command:
             - bash
             - -c
-            - "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet"
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 5
-          failureThreshold: 3
+            - "echo 'db.runCommand(\"ping\").ok' | mongosh mongodb://{{ .Values.mongodb.auth.username }}:{{ .Values.mongodb.auth.password }}@localhost:27017/admin --quiet"
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 20
+          failureThreshold: 5
         resources:
           {{- toYaml .Values.mongodb.resources | nindent 10 }}
         securityContext:
