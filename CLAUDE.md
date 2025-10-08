@@ -192,36 +192,84 @@ kubectl port-forward -n realworld svc/frontend 3000:3000
 
 ### Helm Charts (`helm/realworld/`)
 Templated deployments with environment-specific configurations:
+
+#### Development Deployment
 ```bash
 # Build development images first
 docker build --target development -t realworld-backend:dev ./backend
 docker build --target development -t realworld-frontend:dev ./frontend
 
-# Development deployment (demo secrets)
+# Deploy development environment (1 replica each, demo secrets)
 helm install realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
 
-# Production deployment (secure secrets)
+# Access application
+kubectl port-forward svc/frontend 3000:3000 -n realworld
+# Visit: http://localhost:3000
+```
+
+#### Production Deployment
+```bash
+# Build production images first
+docker build --target production -t realworld-backend:latest ./backend
+docker build --target production -t realworld-frontend:latest ./frontend
+
+# Deploy production environment (3 replicas each, external secrets)
 helm install realworld ./helm/realworld \
   -f ./helm/realworld/values.yaml \
   -f ./helm/realworld/values-prod.yaml \
-  -f ./helm/realworld/values-local-secrets.yaml  # Local secrets file (gitignored)
+  -f ./helm/realworld/values-local-secrets.yaml
 
-# Access application via port forwarding
-kubectl port-forward svc/frontend 3000:3000 -n realworld
-# Then visit: http://localhost:3000
+# Access application
+kubectl port-forward svc/frontend 3001:3000 -n realworld
+# Visit: http://localhost:3001
 ```
 
-### Development Image Configuration
-- **Backend**: Non-root user, devDependencies included, nodemon for hot reload
-- **Frontend**: Non-root user, Next.js dev mode with `.next` directory pre-created
-- **Memory Limits**: Backend (256Mi), Frontend (1Gi), MongoDB (512Mi) for dev mode
-- **Image Pull**: `pullPolicy: Always` ensures latest builds are used
+### Environment Comparison
+
+| Aspect | Development | Production |
+|--------|-------------|------------|
+| **Replicas** | 1 backend, 1 frontend | 3 backend, 3 frontend |
+| **Images** | `:dev` (development stage) | `:latest` (production stage) |
+| **Build Type** | Hot reload, dev server | Pre-built, optimized bundle |
+| **Memory Limits** | Frontend (1Gi), MongoDB (512Mi) | Frontend (512Mi), MongoDB (1Gi) |
+| **Startup Time** | Slower (on-demand compilation) | Fast (Ready in ~400ms) |
+| **Secrets** | Demo values (values-dev.yaml) | External (values-local-secrets.yaml) |
+| **Use Case** | Feature development, debugging | Performance testing, production-like |
+
+### Image Configuration
+- **Development**: Non-root users, devDependencies, hot reload, larger memory for compilation
+- **Production**: Non-root users, optimized builds, minimal dependencies, faster startup
+- **Security**: Both stages use non-root users and proper file ownership
 
 ### Secret Management
 - **Development**: Demo secrets in `values-dev.yaml` (safe to commit)
 - **Production**: External secrets via local files or CI/CD environment variables
 - **Security**: All production secrets protected by `.gitignore` patterns
 - **StatefulSet DNS**: Uses `mongodb-0.mongodb` for headless service resolution
+
+### Deployment Workflow
+```bash
+# 1. Choose environment and build appropriate images
+# Development:
+docker build --target development -t realworld-backend:dev ./backend
+docker build --target development -t realworld-frontend:dev ./frontend
+helm install realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
+
+# Production:
+docker build --target production -t realworld-backend:latest ./backend
+docker build --target production -t realworld-frontend:latest ./frontend
+helm install realworld ./helm/realworld \
+  -f ./helm/realworld/values.yaml \
+  -f ./helm/realworld/values-prod.yaml \
+  -f ./helm/realworld/values-local-secrets.yaml
+
+# 2. Verify deployment
+kubectl get pods -n realworld -w
+
+# 3. Access application
+kubectl port-forward svc/frontend 3000:3000 -n realworld  # Dev
+kubectl port-forward svc/frontend 3001:3000 -n realworld  # Prod
+```
 
 ### Troubleshooting & Restart Deployments
 ```bash
@@ -236,20 +284,18 @@ kubectl rollout restart statefulset/mongodb -n realworld
 
 # Complete restart (when upgrade fails)
 helm uninstall realworld
-helm install realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
+# Then reinstall with appropriate values file
 
-# Force image updates (rebuild images first)
-helm upgrade realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
-
-# Check status
-kubectl get pods -n realworld -w
+# Force image updates (rebuild images first, then upgrade)
+helm upgrade realworld ./helm/realworld -f ./helm/realworld/values-<env>.yaml
 ```
 
 ### Common Issues & Solutions
-- **OOMKilled**: Increase memory limits in values-dev.yaml
-- **ImagePullBackOff**: Rebuild images with correct tags (:dev for development)
+- **OOMKilled**: Increase memory limits in values files
+- **ImagePullBackOff**: Rebuild images with correct tags and stages
 - **CrashLoopBackOff**: Check logs for permission issues, authentication failures
 - **Probe failures**: MongoDB probes need 20s timeout with authentication
+- **Init containers stuck**: Check MongoDB readiness and DNS resolution
 
 ## Environment Variables Required
 - `DATABASE_URI` - MongoDB connection string
