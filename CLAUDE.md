@@ -172,6 +172,26 @@ All API routes follow the RealWorld specification:
 - Uses bcrypt for password hashing
 - Implements slugification for article URLs
 
+### NetworkPolicy Considerations
+Production deployments use NetworkPolicy for security (disabled in dev). When adding new services or namespaces that need to communicate with the RealWorld application:
+
+**Current NetworkPolicy allows ingress from:**
+- Pods within `realworld` namespace (pod-to-pod)
+- `ingress-nginx` namespace (external traffic)
+- `monitoring` namespace (Prometheus scraping)
+- DNS queries (port 53)
+
+**To allow a new namespace to access RealWorld services:**
+Edit `helm/realworld/templates/network-policy.yaml` and add:
+```yaml
+- from:
+  - namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: [NEW_NAMESPACE]
+```
+
+**Note:** Dev has `networkPolicy.enabled: false` for easier local development. Always test NetworkPolicy changes in a production-like environment.
+
 ## Kubernetes Deployment
 
 ### Kubernetes Manifests (`k8s/`)
@@ -463,6 +483,27 @@ grafana:
 | **Scrape Interval** | 30s | 15s |
 | **Alerts** | Disabled | Enabled |
 
+### Daily Monitoring Access
+
+**Access Grafana:**
+```bash
+kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
+# Open browser: http://localhost:3001
+# Login: admin / [password from values-local-secrets.yaml]
+```
+
+**Access Prometheus (for troubleshooting):**
+```bash
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+# Open browser: http://localhost:9090
+```
+
+**View Backend Metrics Directly:**
+```bash
+kubectl port-forward -n realworld svc/backend 4000:4000
+curl http://localhost:4000/metrics
+```
+
 ### Troubleshooting Monitoring
 
 **Metrics not appearing in Prometheus:**
@@ -470,26 +511,29 @@ grafana:
 # 1. Check ServiceMonitor is created
 kubectl get servicemonitor -n realworld
 
-# 2. Check Prometheus targets
+# 2. Check Prometheus targets health
 kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
 # Visit: http://localhost:9090/targets
-# Look for realworld/backend and realworld/mongodb targets
+# Look for realworld/backend and realworld/mongodb targets (should show "UP")
 
-# 3. Check backend /metrics endpoint
-kubectl port-forward -n realworld svc/backend 4000:4000
-curl http://localhost:4000/metrics
+# 3. Verify NetworkPolicy allows monitoring namespace
+kubectl get networkpolicy -n realworld -o yaml
+# Must include ingress rule for kubernetes.io/metadata.name: monitoring
+
+# 4. Test connectivity from Prometheus to backend
+kubectl exec -n monitoring prometheus-monitoring-kube-prometheus-prometheus-0 -c prometheus -- \
+  wget -O- --timeout=5 http://[BACKEND_POD_IP]:4000/metrics
 ```
 
-**Grafana dashboard not loading:**
+**Grafana dashboard not updating:**
 ```bash
 # 1. Check ConfigMap exists
 kubectl get configmap -n monitoring | grep grafana-dashboard
 
-# 2. Check Grafana logs
-kubectl logs -n monitoring deployment/monitoring-grafana
-
-# 3. Restart Grafana to reload dashboards
+# 2. Restart Grafana to reload dashboards
 kubectl rollout restart deployment/monitoring-grafana -n monitoring
+
+# 3. Wait 1-2 minutes for pods to restart, then refresh browser
 ```
 
 **Prometheus using too much memory:**
