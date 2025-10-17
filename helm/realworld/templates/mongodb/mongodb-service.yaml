@@ -7,11 +7,19 @@ metadata:
   labels:
     app: mongodb
     component: database
+    {{- if and .Values.monitoring.enabled .Values.monitoring.mongodb.exporter.enabled }}
+    monitoring: "true"
+    {{- end }}
 spec:
   ports:
   - port: 27017
     targetPort: 27017
     name: mongodb
+  {{- if and .Values.monitoring.enabled .Values.monitoring.mongodb.exporter.enabled }}
+  - port: {{ .Values.monitoring.mongodb.exporter.port }}
+    targetPort: {{ .Values.monitoring.mongodb.exporter.port }}
+    name: metrics
+  {{- end }}
   selector:
     app: mongodb
   clusterIP: None

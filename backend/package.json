@@ -23,6 +23,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.8.1",
     "mongoose-unique-validator": "^3.1.0",
+    "prom-client": "^15.1.0",
     "slugify": "^1.6.5"
   },
   "devDependencies": {

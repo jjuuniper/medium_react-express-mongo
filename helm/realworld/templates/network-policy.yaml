@@ -15,6 +15,10 @@ spec:
         matchLabels:
           name: ingress-nginx
   - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+  - from:
     - podSelector: {}
   egress:
   - to:

@@ -7,6 +7,9 @@ metadata:
   labels:
     app: backend
     component: api
+    {{- if .Values.monitoring.enabled }}
+    monitoring: "true"
+    {{- end }}
 spec:
   ports:
   - port: {{ .Values.backend.port }}

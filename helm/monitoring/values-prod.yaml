@@ -1,0 +1,218 @@
+# Production Monitoring Stack Configuration
+# kube-prometheus-stack values for production environment
+#
+# Install with:
+# helm install monitoring prometheus-community/kube-prometheus-stack \
+#   -f monitoring-values-prod.yaml \
+#   --set grafana.adminPassword="$GRAFANA_PASSWORD" \
+#   -n monitoring --create-namespace
+
+# Prometheus configuration
+prometheus:
+  prometheusSpec:
+    # High availability - 2 replicas
+    replicas: 2
+
+    # Longer retention for production
+    retention: 30d
+    retentionSize: 50GB
+
+    # Persistent storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+          # storageClassName: fast-ssd  # Uncomment and specify your storage class
+
+    # Production-grade resources
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: 1000m
+      limits:
+        memory: 4Gi
+        cpu: 2000m
+
+    # Scrape interval
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+
+    # Service monitors selector - discover all ServiceMonitors
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+    # Prometheus rules selector - discover all PrometheusRules
+    ruleSelector: {}
+    ruleNamespaceSelector: {}
+
+    # Pod monitors selector
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+
+    # High availability - anti-affinity to run replicas on different nodes
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - prometheus
+          topologyKey: kubernetes.io/hostname
+
+# Grafana configuration
+grafana:
+  enabled: true
+  replicas: 2  # High availability
+
+  # Admin password MUST be set via --set or external secret management
+  # DO NOT hardcode production passwords in this file
+  adminPassword: ""  # Set via: --set grafana.adminPassword="$GRAFANA_PASSWORD"
+
+  # Persistent storage for dashboards and configuration
+  persistence:
+    enabled: true
+    size: 10Gi
+    # storageClassName: fast-ssd  # Uncomment and specify your storage class
+
+  # Resources for Grafana
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 400m
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+
+  # Optional: Ingress for external access
+  # Uncomment and configure if you want external access to Grafana
+  # ingress:
+  #   enabled: true
+  #   ingressClassName: nginx
+  #   annotations:
+  #     cert-manager.io/cluster-issuer: letsencrypt-prod
+  #     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  #   hosts:
+  #   - grafana.realworld.example.com
+  #   tls:
+  #   - secretName: grafana-tls
+  #     hosts:
+  #     - grafana.realworld.example.com
+
+# Alertmanager configuration
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    # High availability - 3 replicas for consensus
+    replicas: 3
+
+    # Persistent storage
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+          # storageClassName: fast-ssd  # Uncomment and specify your storage class
+
+    # Resources
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+
+  # Alertmanager configuration
+  # Configure notification channels (email, Slack, PagerDuty, etc.)
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'null'
+      routes:
+      - match:
+          alertname: Watchdog
+        receiver: 'null'
+    receivers:
+    - name: 'null'
+    # Example: Add Slack receiver
+    # - name: 'slack'
+    #   slack_configs:
+    #   - api_url: '$SLACK_WEBHOOK_URL'
+    #     channel: '#alerts'
+    #     title: '{{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+# Kube-state-metrics - enabled for Kubernetes metrics
+kubeStateMetrics:
+  enabled: true
+
+# Node exporter - enabled in production for hardware metrics
+nodeExporter:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 100m
+
+# Prometheus operator configuration
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 400m
+
+# Default rules - enable important production alerts
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: false  # Enable if you expose etcd metrics
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: false
+    kubeApiserverHistogram: false
+    kubeApiserverSlos: false
+    kubeControllerManager: false
+    kubelet: true
+    kubeProxy: false
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true

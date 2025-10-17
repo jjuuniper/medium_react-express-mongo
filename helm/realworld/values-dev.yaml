@@ -48,3 +48,15 @@ ingress:
 
 networkPolicy:
   enabled: false
+
+# Monitoring overrides for development
+monitoring:
+  serviceMonitor:
+    interval: 30s  # Less frequent scraping in dev
+
+  alerts:
+    enabled: false  # No alerts in dev
+
+  mongodb:
+    exporter:
+      enabled: false  # Skip MongoDB exporter in dev to save resources

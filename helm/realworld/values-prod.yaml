@@ -5,6 +5,12 @@ replicaCount:
   backend: 3
   frontend: 3
 
+image:
+  backend:
+    pullPolicy: Always
+  frontend:
+    pullPolicy: Always
+
 mongodb:
   storage: 20Gi
   resources:
@@ -59,3 +65,22 @@ ingress:
   - secretName: realworld-tls
     hosts:
     - realworld.example.com
+
+# Monitoring overrides for production
+monitoring:
+  serviceMonitor:
+    interval: 15s  # More frequent scraping in production
+
+  alerts:
+    enabled: true  # All alerts enabled in production
+
+  mongodb:
+    exporter:
+      enabled: true  # MongoDB exporter enabled in production
+      resources:
+        requests:
+          memory: 128Mi
+          cpu: 100m
+        limits:
+          memory: 256Mi
+          cpu: 200m
