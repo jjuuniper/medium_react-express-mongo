@@ -1,0 +1,22 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled .Values.backend.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: backend
+    component: api
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: backend
+      monitoring: "true"
+  endpoints:
+  - port: http
+    path: {{ .Values.monitoring.backend.metrics.path }}
+    interval: {{ .Values.monitoring.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+    scheme: http
+{{- end }}

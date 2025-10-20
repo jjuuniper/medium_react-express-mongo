@@ -1,0 +1,126 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: realworld-alerts
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: realworld
+    release: monitoring
+spec:
+  groups:
+  - name: realworld.backend
+    interval: 30s
+    rules:
+    # High Error Rate Alert
+    - alert: RealWorldHighErrorRate
+      expr: |
+        (
+          sum(rate(http_requests_total{namespace="{{ .Values.global.namespace }}",app="backend",status_code=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{namespace="{{ .Values.global.namespace }}",app="backend"}[5m]))
+        ) > {{ .Values.monitoring.alerts.highErrorRate }}
+      for: 5m
+      labels:
+        severity: warning
+        component: backend
+      annotations:
+        summary: "High 5xx error rate detected in RealWorld backend"
+        description: "Backend API is experiencing {{ "{{ $value | humanizePercentage }}" }} error rate (threshold: {{ .Values.monitoring.alerts.highErrorRate | mul 100 }}%)"
+
+    # High Latency Alert
+    - alert: RealWorldHighLatency
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{namespace="{{ .Values.global.namespace }}",app="backend"}[5m])) by (le)
+        ) > {{ .Values.monitoring.alerts.highLatency }}
+      for: 5m
+      labels:
+        severity: warning
+        component: backend
+      annotations:
+        summary: "High API latency detected in RealWorld backend"
+        description: "Backend API p95 latency is {{ "{{ $value | humanizeDuration }}" }} (threshold: {{ .Values.monitoring.alerts.highLatency }}s)"
+
+    # Pod Restart Alert
+    - alert: RealWorldPodRestarting
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace="{{ .Values.global.namespace }}"}[1h]) > {{ .Values.monitoring.alerts.podRestarts }}
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ "{{ $labels.pod }}" }} is restarting frequently"
+        description: "Pod {{ "{{ $labels.pod }}" }} in namespace {{ .Values.global.namespace }} has restarted {{ "{{ $value }}" }} times in the last hour"
+
+  - name: realworld.mongodb
+    interval: 30s
+    rules:
+    # MongoDB Down Alert
+    - alert: RealWorldMongoDBDown
+      expr: |
+        mongodb_connection_status{namespace="{{ .Values.global.namespace }}"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: mongodb
+      annotations:
+        summary: "MongoDB is down or disconnected"
+        description: "MongoDB connection status is 0 in namespace {{ .Values.global.namespace }}"
+
+    # MongoDB Connection Issues
+    - alert: RealWorldMongoDBHighConnections
+      expr: |
+        mongodb_connections{namespace="{{ .Values.global.namespace }}",state="current"} > 100
+      for: 5m
+      labels:
+        severity: warning
+        component: mongodb
+      annotations:
+        summary: "MongoDB has high number of connections"
+        description: "MongoDB has {{ "{{ $value }}" }} active connections (consider scaling or checking for connection leaks)"
+
+  - name: realworld.resources
+    interval: 30s
+    rules:
+    # High Memory Usage Alert
+    - alert: RealWorldHighMemoryUsage
+      expr: |
+        (
+          container_memory_working_set_bytes{namespace="{{ .Values.global.namespace }}",pod=~"backend-.*|frontend-.*|mongodb-.*"}
+          /
+          container_spec_memory_limit_bytes{namespace="{{ .Values.global.namespace }}",pod=~"backend-.*|frontend-.*|mongodb-.*"}
+        ) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High memory usage in pod {{ "{{ $labels.pod }}" }}"
+        description: "Pod {{ "{{ $labels.pod }}" }} is using {{ "{{ $value | humanizePercentage }}" }} of its memory limit"
+
+    # High CPU Usage Alert
+    - alert: RealWorldHighCPUUsage
+      expr: |
+        (
+          rate(container_cpu_usage_seconds_total{namespace="{{ .Values.global.namespace }}",pod=~"backend-.*|frontend-.*|mongodb-.*"}[5m])
+          /
+          container_spec_cpu_quota{namespace="{{ .Values.global.namespace }}",pod=~"backend-.*|frontend-.*|mongodb-.*"}
+        ) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage in pod {{ "{{ $labels.pod }}" }}"
+        description: "Pod {{ "{{ $labels.pod }}" }} is using {{ "{{ $value | humanizePercentage }}" }} of its CPU limit"
+
+    # Pod Not Ready Alert
+    - alert: RealWorldPodNotReady
+      expr: |
+        kube_pod_status_ready{namespace="{{ .Values.global.namespace }}",condition="false"} == 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ "{{ $labels.pod }}" }} is not ready"
+        description: "Pod {{ "{{ $labels.pod }}" }} in namespace {{ .Values.global.namespace }} has been in a non-ready state for more than 5 minutes"
+{{- end }}

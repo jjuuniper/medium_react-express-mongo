@@ -172,6 +172,26 @@ All API routes follow the RealWorld specification:
 - Uses bcrypt for password hashing
 - Implements slugification for article URLs
 
+### NetworkPolicy Considerations
+Production deployments use NetworkPolicy for security (disabled in dev). When adding new services or namespaces that need to communicate with the RealWorld application:
+
+**Current NetworkPolicy allows ingress from:**
+- Pods within `realworld` namespace (pod-to-pod)
+- `ingress-nginx` namespace (external traffic)
+- `monitoring` namespace (Prometheus scraping)
+- DNS queries (port 53)
+
+**To allow a new namespace to access RealWorld services:**
+Edit `helm/realworld/templates/network-policy.yaml` and add:
+```yaml
+- from:
+  - namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: [NEW_NAMESPACE]
+```
+
+**Note:** Dev has `networkPolicy.enabled: false` for easier local development. Always test NetworkPolicy changes in a production-like environment.
+
 ## Kubernetes Deployment
 
 ### Kubernetes Manifests (`k8s/`)
@@ -296,6 +316,277 @@ helm upgrade realworld ./helm/realworld -f ./helm/realworld/values-<env>.yaml
 - **CrashLoopBackOff**: Check logs for permission issues, authentication failures
 - **Probe failures**: MongoDB probes need 20s timeout with authentication
 - **Init containers stuck**: Check MongoDB readiness and DNS resolution
+
+## Monitoring with Prometheus & Grafana
+
+### Architecture Overview
+
+The monitoring stack uses **kube-prometheus-stack**, which includes:
+- **Prometheus** - Time-series database for metrics storage and querying
+- **Grafana** - Visualization dashboards and alerting
+- **Alertmanager** - Alert routing and notifications (production only)
+- **Prometheus Operator** - Kubernetes-native Prometheus management
+- **ServiceMonitor CRDs** - Automatic service discovery for metrics scraping
+
+**Key Features:**
+- ✅ 100% runs in Kubernetes (no local installation required)
+- ✅ Environment-specific configurations (dev/prod)
+- ✅ Automatic metric collection via ServiceMonitors
+- ✅ Pre-built Kubernetes dashboards + custom RealWorld dashboards
+- ✅ Production-grade alerting rules
+
+### Installation
+
+#### Development Environment
+```bash
+# 1. Add Prometheus Helm repository (one-time setup)
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# 2. Install kube-prometheus-stack
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  -f helm/monitoring/values-dev.yaml \
+  -n monitoring --create-namespace
+
+# 3. Wait for all pods to be ready
+kubectl wait --for=condition=ready pod --all -n monitoring --timeout=300s
+
+# 4. Deploy/upgrade RealWorld application with monitoring enabled
+helm upgrade --install realworld ./helm/realworld \
+  -f helm/realworld/values.yaml \
+  -f helm/realworld/values-dev.yaml
+
+# 5. Access Grafana
+kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
+# Open browser: http://localhost:3001
+# Login: admin / admin
+```
+
+#### Production Environment
+```bash
+# 1. Add Prometheus Helm repository (if not already added)
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# 2. Install kube-prometheus-stack with production configuration
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  -f helm/monitoring/values-prod.yaml \
+  --set grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD" \
+  -n monitoring --create-namespace
+
+# 3. Wait for all pods to be ready
+kubectl wait --for=condition=ready pod --all -n monitoring --timeout=600s
+
+# 4. Deploy/upgrade RealWorld application
+helm upgrade --install realworld ./helm/realworld \
+  -f helm/realworld/values.yaml \
+  -f helm/realworld/values-prod.yaml \
+  -f helm/realworld/values-local-secrets.yaml
+
+# 5. Access Grafana
+kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
+# Open browser: http://localhost:3001
+```
+
+### Accessing Monitoring
+
+**Method 1: Port Forwarding (Recommended for Development)**
+```bash
+# Access Grafana
+kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
+# Visit: http://localhost:3001
+
+# Access Prometheus (optional)
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+# Visit: http://localhost:9090
+
+# Access Alertmanager (production only)
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-alertmanager 9093:9093
+# Visit: http://localhost:9093
+```
+
+**Method 2: Ingress (Production)**
+```yaml
+# Uncomment ingress section in helm/monitoring/values-prod.yaml
+grafana:
+  ingress:
+    enabled: true
+    hosts:
+    - grafana.your-domain.com
+```
+
+### Available Dashboards
+
+**Pre-built Kubernetes Dashboards (20+):**
+- Kubernetes / Compute Resources / Cluster
+- Kubernetes / Compute Resources / Namespace (Pods)
+- Kubernetes / Compute Resources / Pod
+- Kubernetes / Networking / Cluster
+- Node Exporter / Nodes
+- Prometheus / Overview
+
+**Custom RealWorld Dashboards:**
+1. **RealWorld - Application Overview**
+   - Requests per second
+   - API response time (p50, p95, p99 latency)
+   - Error rate (5xx responses)
+   - HTTP requests by status code
+   - MongoDB connection status
+   - Ready pods count
+
+### Metrics Exposed
+
+**Backend API Metrics** (`/metrics` endpoint on port 4000):
+- `http_request_duration_seconds` - HTTP request latency histogram
+- `http_requests_total` - Total HTTP requests counter
+- `mongodb_connection_status` - MongoDB connection status (1=connected, 0=disconnected)
+- `nodejs_*` - Node.js runtime metrics (CPU, memory, event loop, GC)
+- `realworld_active_users_total` - Total registered users
+- `realworld_article_operations_total` - Article operations (create, update, delete, favorite)
+- `realworld_comment_operations_total` - Comment operations (create, delete)
+- `realworld_auth_operations_total` - Authentication operations (login, register)
+
+**MongoDB Metrics** (via Percona MongoDB Exporter on port 9216, production only):
+- `mongodb_connections` - Current MongoDB connections
+- `mongodb_op_counters_total` - MongoDB operation counters
+- `mongodb_memory` - MongoDB memory usage
+- And 100+ more MongoDB-specific metrics
+
+### Alerting Rules (Production Only)
+
+**Backend Alerts:**
+- **RealWorldHighErrorRate** - 5xx error rate > 5% for 5 minutes
+- **RealWorldHighLatency** - p95 latency > 1 second for 5 minutes
+
+**MongoDB Alerts:**
+- **RealWorldMongoDBDown** - MongoDB connection status = 0 for 2 minutes
+- **RealWorldMongoDBHighConnections** - Active connections > 100 for 5 minutes
+
+**Resource Alerts:**
+- **RealWorldHighMemoryUsage** - Memory usage > 90% of limit for 5 minutes
+- **RealWorldHighCPUUsage** - CPU usage > 80% of limit for 5 minutes
+- **RealWorldPodNotReady** - Pod not ready for 5 minutes
+- **RealWorldPodRestarting** - Pod restarts > 3 in 1 hour
+
+### Environment Comparison
+
+| Feature | Development | Production |
+|---------|-------------|------------|
+| **Prometheus Replicas** | 1 | 2 (HA) |
+| **Prometheus Retention** | 7 days | 30 days |
+| **Prometheus Storage** | Ephemeral | 50Gi persistent |
+| **Grafana Replicas** | 1 | 2 (HA) |
+| **Grafana Persistence** | No | 10Gi persistent |
+| **Alertmanager** | Disabled | 3 replicas (clustered) |
+| **Node Exporter** | Disabled | Enabled |
+| **MongoDB Exporter** | Disabled | Enabled |
+| **Scrape Interval** | 30s | 15s |
+| **Alerts** | Disabled | Enabled |
+
+### Daily Monitoring Access
+
+**Access Grafana:**
+```bash
+kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
+# Open browser: http://localhost:3001
+# Login: admin / [password from values-local-secrets.yaml]
+```
+
+**Access Prometheus (for troubleshooting):**
+```bash
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+# Open browser: http://localhost:9090
+```
+
+**View Backend Metrics Directly:**
+```bash
+kubectl port-forward -n realworld svc/backend 4000:4000
+curl http://localhost:4000/metrics
+```
+
+### Troubleshooting Monitoring
+
+**Metrics not appearing in Prometheus:**
+```bash
+# 1. Check ServiceMonitor is created
+kubectl get servicemonitor -n realworld
+
+# 2. Check Prometheus targets health
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+# Visit: http://localhost:9090/targets
+# Look for realworld/backend and realworld/mongodb targets (should show "UP")
+
+# 3. Verify NetworkPolicy allows monitoring namespace
+kubectl get networkpolicy -n realworld -o yaml
+# Must include ingress rule for kubernetes.io/metadata.name: monitoring
+
+# 4. Test connectivity from Prometheus to backend
+kubectl exec -n monitoring prometheus-monitoring-kube-prometheus-prometheus-0 -c prometheus -- \
+  wget -O- --timeout=5 http://[BACKEND_POD_IP]:4000/metrics
+```
+
+**Grafana dashboard not updating:**
+```bash
+# 1. Check ConfigMap exists
+kubectl get configmap -n monitoring | grep grafana-dashboard
+
+# 2. Restart Grafana to reload dashboards
+kubectl rollout restart deployment/monitoring-grafana -n monitoring
+
+# 3. Wait 1-2 minutes for pods to restart, then refresh browser
+```
+
+**Prometheus using too much memory:**
+```bash
+# Reduce retention in values file
+prometheus:
+  prometheusSpec:
+    retention: 3d  # Reduce from 7d or 30d
+    retentionSize: 5GB  # Reduce from 10GB or 50GB
+
+# Upgrade the release
+helm upgrade monitoring prometheus-community/kube-prometheus-stack \
+  -f helm/monitoring/values-dev.yaml -n monitoring
+```
+
+### Uninstalling Monitoring
+
+```bash
+# Remove monitoring stack
+helm uninstall monitoring -n monitoring
+
+# Remove monitoring namespace (optional)
+kubectl delete namespace monitoring
+
+# Note: RealWorld application will continue to work without monitoring
+```
+
+### Example Prometheus Queries
+
+**API Request Rate:**
+```promql
+sum(rate(http_requests_total{namespace="realworld"}[5m]))
+```
+
+**p95 Latency:**
+```promql
+histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace="realworld"}[5m])) by (le))
+```
+
+**Error Rate:**
+```promql
+sum(rate(http_requests_total{namespace="realworld",status_code=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="realworld"}[5m]))
+```
+
+**MongoDB Connection Status:**
+```promql
+mongodb_connection_status{namespace="realworld"}
+```
+
+**Pod Memory Usage:**
+```promql
+container_memory_working_set_bytes{namespace="realworld",pod=~"backend-.*"} / container_spec_memory_limit_bytes{namespace="realworld",pod=~"backend-.*"}
+```
 
 ## Environment Variables Required
 - `DATABASE_URI` - MongoDB connection string

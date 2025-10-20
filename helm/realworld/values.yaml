@@ -81,3 +81,44 @@ networkPolicy:
 
 rbac:
   create: true
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+
+  # ServiceMonitor configuration for Prometheus Operator
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+
+  # Metrics endpoints
+  backend:
+    metrics:
+      enabled: true
+      port: 4000
+      path: /metrics
+
+  mongodb:
+    exporter:
+      enabled: true
+      image: percona/mongodb_exporter:0.40
+      port: 9216
+      resources:
+        requests:
+          memory: 128Mi
+          cpu: 100m
+        limits:
+          memory: 256Mi
+          cpu: 200m
+
+  # Alerting rules
+  alerts:
+    enabled: true
+    highErrorRate: 0.05        # 5% error rate threshold
+    highLatency: 1.0           # 1 second p95 latency threshold
+    podRestarts: 3             # Alert after 3 pod restarts in 1 hour
+
+  # Grafana dashboards
+  dashboards:
+    enabled: true

@@ -1,6 +1,7 @@
 .env
 /backend/coverage
 /.claude
+monitoringImplementation.md
 
 # Security: Don't commit secrets
 values-secrets.yaml
@@ -14,6 +15,10 @@ values-local-*.yaml
 /k8s/secrets/secret-staging.yaml
 /helm/realworld/values-staging.yaml
 /helm/realworld/values-local-secrets.yaml
+
+# Monitoring secrets
+/helm/monitoring/values-local-secrets.yaml
+/helm/monitoring/*-secrets.yaml
 
 # Generated credential files
 *.key
