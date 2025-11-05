@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Development should be precise and robust
 - ALWAYS follow programming and security best practices
 - ALWAYS implement proper error handling, and compliance
+- NEVER use emojis in project files
 
 ## Project Overview
 
@@ -182,7 +183,7 @@ Production deployments use NetworkPolicy for security (disabled in dev). When ad
 - DNS queries (port 53)
 
 **To allow a new namespace to access RealWorld services:**
-Edit `helm/realworld/templates/network-policy.yaml` and add:
+Edit `infrastructure/helm/realworld/templates/network-policy.yaml` and add:
 ```yaml
 - from:
   - namespaceSelector:
@@ -194,33 +195,33 @@ Edit `helm/realworld/templates/network-policy.yaml` and add:
 
 ## Kubernetes Deployment
 
-### Kubernetes Manifests (`k8s/`)
+### Kubernetes Manifests (`infrastructure/k8s/`)
 Raw Kubernetes YAML files for manual deployment:
 ```bash
 # Build images with proper names
 docker-compose build
 
 # Deploy all components
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secrets/secret-dev.yaml  # Demo secrets
-kubectl apply -f k8s/mongodb/ k8s/backend/ k8s/frontend/
-kubectl apply -f k8s/ingress.yaml
+kubectl apply -f infrastructure/k8s/namespace.yaml
+kubectl apply -f infrastructure/k8s/secrets/secret-dev.yaml  # Demo secrets
+kubectl apply -f infrastructure/k8s/mongodb/ infrastructure/k8s/backend/ infrastructure/k8s/frontend/
+kubectl apply -f infrastructure/k8s/ingress.yaml
 
 # Access application
 kubectl port-forward -n realworld svc/frontend 3000:3000
 ```
 
-### Helm Charts (`helm/realworld/`)
+### Helm Charts (`infrastructure/helm/realworld/`)
 Templated deployments with environment-specific configurations:
 
-#### Development Deployment
+#### Staging Deployment
 ```bash
-# Build development images first
+# Build staging images first
 docker build --target development -t realworld-backend:dev ./backend
 docker build --target development -t realworld-frontend:dev ./frontend
 
-# Deploy development environment (1 replica each, demo secrets)
-helm install realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
+# Deploy staging environment (1 replica each, demo secrets)
+helm install realworld ./infrastructure/helm/realworld -f ./infrastructure/helm/realworld/values-staging.yaml
 
 # Access application
 kubectl port-forward svc/frontend 3000:3000 -n realworld
@@ -234,10 +235,10 @@ docker build --target production -t realworld-backend:latest ./backend
 docker build --target production -t realworld-frontend:latest ./frontend
 
 # Deploy production environment (3 replicas each, external secrets)
-helm install realworld ./helm/realworld \
-  -f ./helm/realworld/values.yaml \
-  -f ./helm/realworld/values-prod.yaml \
-  -f ./helm/realworld/values-local-secrets.yaml
+helm install realworld ./infrastructure/helm/realworld \
+  -f ./infrastructure/helm/realworld/values.yaml \
+  -f ./infrastructure/helm/realworld/values-prod.yaml \
+  -f ./infrastructure/helm/realworld/values-local-secrets.yaml
 
 # Access application
 kubectl port-forward svc/frontend 3001:3000 -n realworld
@@ -246,14 +247,14 @@ kubectl port-forward svc/frontend 3001:3000 -n realworld
 
 ### Environment Comparison
 
-| Aspect | Development | Production |
-|--------|-------------|------------|
+| Aspect | Staging | Production |
+|--------|---------|------------|
 | **Replicas** | 1 backend, 1 frontend | 3 backend, 3 frontend |
 | **Images** | `:dev` (development stage) | `:latest` (production stage) |
 | **Build Type** | Hot reload, dev server | Pre-built, optimized bundle |
 | **Memory Limits** | Frontend (1Gi), MongoDB (512Mi) | Frontend (512Mi), MongoDB (1Gi) |
 | **Startup Time** | Slower (on-demand compilation) | Fast (Ready in ~400ms) |
-| **Secrets** | Demo values (values-dev.yaml) | External (values-local-secrets.yaml) |
+| **Secrets** | Demo values (values-staging.yaml) | External (values-local-secrets.yaml) |
 | **Use Case** | Feature development, debugging | Performance testing, production-like |
 
 ### Image Configuration
@@ -262,7 +263,7 @@ kubectl port-forward svc/frontend 3001:3000 -n realworld
 - **Security**: Both stages use non-root users and proper file ownership
 
 ### Secret Management
-- **Development**: Demo secrets in `values-dev.yaml` (safe to commit)
+- **Staging**: Demo secrets in `values-staging.yaml` (safe to commit)
 - **Production**: External secrets via local files or CI/CD environment variables
 - **Security**: All production secrets protected by `.gitignore` patterns
 - **StatefulSet DNS**: Uses `mongodb-0.mongodb` for headless service resolution
@@ -270,24 +271,24 @@ kubectl port-forward svc/frontend 3001:3000 -n realworld
 ### Deployment Workflow
 ```bash
 # 1. Choose environment and build appropriate images
-# Development:
+# Staging:
 docker build --target development -t realworld-backend:dev ./backend
 docker build --target development -t realworld-frontend:dev ./frontend
-helm install realworld ./helm/realworld -f ./helm/realworld/values-dev.yaml
+helm install realworld ./infrastructure/helm/realworld -f ./infrastructure/helm/realworld/values-staging.yaml
 
 # Production:
 docker build --target production -t realworld-backend:latest ./backend
 docker build --target production -t realworld-frontend:latest ./frontend
-helm install realworld ./helm/realworld \
-  -f ./helm/realworld/values.yaml \
-  -f ./helm/realworld/values-prod.yaml \
-  -f ./helm/realworld/values-local-secrets.yaml
+helm install realworld ./infrastructure/helm/realworld \
+  -f ./infrastructure/helm/realworld/values.yaml \
+  -f ./infrastructure/helm/realworld/values-prod.yaml \
+  -f ./infrastructure/helm/realworld/values-local-secrets.yaml
 
 # 2. Verify deployment
 kubectl get pods -n realworld -w
 
 # 3. Access application
-kubectl port-forward svc/frontend 3000:3000 -n realworld  # Dev
+kubectl port-forward svc/frontend 3000:3000 -n realworld  # Staging
 kubectl port-forward svc/frontend 3001:3000 -n realworld  # Prod
 ```
 
@@ -307,7 +308,7 @@ helm uninstall realworld
 # Then reinstall with appropriate values file
 
 # Force image updates (rebuild images first, then upgrade)
-helm upgrade realworld ./helm/realworld -f ./helm/realworld/values-<env>.yaml
+helm upgrade realworld ./infrastructure/helm/realworld -f ./infrastructure/helm/realworld/values-<env>.yaml
 ```
 
 ### Common Issues & Solutions
@@ -345,16 +346,16 @@ helm repo update
 
 # 2. Install kube-prometheus-stack
 helm install monitoring prometheus-community/kube-prometheus-stack \
-  -f helm/monitoring/values-dev.yaml \
+  -f infrastructure/helm/monitoring/values-dev.yaml \
   -n monitoring --create-namespace
 
 # 3. Wait for all pods to be ready
 kubectl wait --for=condition=ready pod --all -n monitoring --timeout=300s
 
 # 4. Deploy/upgrade RealWorld application with monitoring enabled
-helm upgrade --install realworld ./helm/realworld \
-  -f helm/realworld/values.yaml \
-  -f helm/realworld/values-dev.yaml
+helm upgrade --install realworld ./infrastructure/helm/realworld \
+  -f infrastructure/helm/realworld/values.yaml \
+  -f infrastructure/helm/realworld/values-staging.yaml
 
 # 5. Access Grafana
 kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
@@ -370,7 +371,7 @@ helm repo update
 
 # 2. Install kube-prometheus-stack with production configuration
 helm install monitoring prometheus-community/kube-prometheus-stack \
-  -f helm/monitoring/values-prod.yaml \
+  -f infrastructure/helm/monitoring/values-prod.yaml \
   --set grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD" \
   -n monitoring --create-namespace
 
@@ -378,10 +379,10 @@ helm install monitoring prometheus-community/kube-prometheus-stack \
 kubectl wait --for=condition=ready pod --all -n monitoring --timeout=600s
 
 # 4. Deploy/upgrade RealWorld application
-helm upgrade --install realworld ./helm/realworld \
-  -f helm/realworld/values.yaml \
-  -f helm/realworld/values-prod.yaml \
-  -f helm/realworld/values-local-secrets.yaml
+helm upgrade --install realworld ./infrastructure/helm/realworld \
+  -f infrastructure/helm/realworld/values.yaml \
+  -f infrastructure/helm/realworld/values-prod.yaml \
+  -f infrastructure/helm/realworld/values-local-secrets.yaml
 
 # 5. Access Grafana
 kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
@@ -407,7 +408,7 @@ kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-alertmanager 9
 
 **Method 2: Ingress (Production)**
 ```yaml
-# Uncomment ingress section in helm/monitoring/values-prod.yaml
+# Uncomment ingress section in infrastructure/helm/monitoring/values-prod.yaml
 grafana:
   ingress:
     enabled: true
@@ -546,7 +547,7 @@ prometheus:
 
 # Upgrade the release
 helm upgrade monitoring prometheus-community/kube-prometheus-stack \
-  -f helm/monitoring/values-dev.yaml -n monitoring
+  -f infrastructure/helm/monitoring/values-dev.yaml -n monitoring
 ```
 
 ### Uninstalling Monitoring
@@ -587,6 +588,301 @@ mongodb_connection_status{namespace="realworld"}
 ```promql
 container_memory_working_set_bytes{namespace="realworld",pod=~"backend-.*"} / container_spec_memory_limit_bytes{namespace="realworld",pod=~"backend-.*"}
 ```
+
+## CI/CD Pipeline
+
+### Architecture Overview
+
+The project uses **GitHub Actions** for a comprehensive CI/CD pipeline following **GitFlow** branching strategy with automated security scanning, testing, and deployment.
+
+**Branching Strategy:**
+```
+feature/* → develop → staging → main → production
+    ↓          ↓                  ↓
+  Local    Auto-deploy        Manual deploy
+   Dev       (CI/CD)           (Approval)
+```
+
+### Branch Workflow
+
+**Feature Branches (`feature/*`):**
+- Local development only
+- No CI/CD workflows run (to save CI minutes)
+- Must create PR to `develop` to trigger CI
+
+**Develop Branch:**
+- Runs full CI pipeline (lint, test, security, build, scan)
+- Builds and pushes Docker images with `develop` tags
+- Auto-deploys to `realworld-staging` namespace on AKS
+- No manual approval required
+
+**Main Branch:**
+- Runs full CI pipeline
+- Builds and pushes Docker images with version tags
+- Creates GitHub Releases with semantic versioning
+- Generates CHANGELOG.md automatically
+- Production deployment requires manual approval from @jjuuniper
+
+### GitHub Actions Workflows
+
+**1. CI Pipeline (`.github/workflows/ci.yml`)**
+
+Triggers: Pull requests and pushes to `develop`/`main`
+
+**Stage 1 - Quality & Security Checks (Parallel):**
+- Backend linting (ESLint)
+- Frontend linting (ESLint + Prettier)
+- Backend testing (Jest with 80% coverage threshold)
+- Frontend TypeScript type checking
+- Secret scanning (TruffleHog - full history scan)
+- Dependency scanning (npm audit - high severity)
+- SAST scanning (Semgrep - security-audit, nodejs, react, docker)
+
+**Stage 2 - Build Images (Parallel, Local Only):**
+- Build backend Docker image
+- Build frontend Docker image
+- Images stored as artifacts (not pushed to registry yet)
+- Docker layer caching enabled
+
+**Stage 3 - Security Gate (Scan Before Push):**
+- Trivy scan backend image (CRITICAL/HIGH = fail)
+- Trivy scan frontend image (CRITICAL/HIGH = fail)
+- Generate SBOMs (Software Bill of Materials)
+- Upload results to GitHub Security tab
+- **Critical**: Images only proceed if scans pass
+
+**Stage 4 - Push Images (Only on develop/main):**
+- Tag images appropriately:
+  - `develop` branch: `develop`, `develop-{sha}`
+  - `main` branch: `{version}`, `{version}-{sha}`, `main`, `latest`
+- Push to GitHub Container Registry (ghcr.io)
+- Only runs if all security scans pass
+
+**2. Deploy Staging (`.github/workflows/deploy-staging.yml`)**
+
+Triggers: After successful CI Pipeline run on `develop` branch
+
+**Steps:**
+- Connects to AKS using `KUBECONFIG_STAGING` secret
+- Deploys to `realworld-staging` namespace using Helm
+- Uses `values-staging.yaml` configuration
+- Waits for pods to be ready (5 minute timeout)
+- Runs basic health checks
+- Posts deployment summary
+
+**3. Deploy Production (`.github/workflows/deploy-production.yml`)**
+
+Triggers: Manual workflow dispatch only
+
+**Features:**
+- Requires manual approval from @jjuuniper
+- Input parameter: `version` (e.g., `1.0.0`)
+- Validates version exists in registry before deploying
+- Creates backup of current deployment
+- Deploys to `realworld-production` namespace using Helm
+- Runs smoke tests (health checks)
+- Monitors deployment for 2 minutes
+- **Auto-rollback on failure**
+
+**4. PR Checks (`.github/workflows/pr-checks.yml`)**
+
+Triggers: Pull request opened, edited, synchronized
+
+**Checks:**
+- PR title validation (Conventional Commits format)
+- PR size check (warns if >500 lines changed)
+- Test coverage report (posted as PR comment)
+- Security scan summary (posted as PR comment)
+- PR checklist reminder
+
+**5. Release (`.github/workflows/release.yml`)**
+
+Triggers: Push to `main` branch
+
+**Features:**
+- Uses `semantic-release` for automated versioning
+- Follows Conventional Commits specification:
+  - `feat:` → Minor version bump (0.1.0 → 0.2.0)
+  - `fix:` → Patch version bump (0.1.0 → 0.1.1)
+  - `BREAKING CHANGE:` → Major version bump (0.1.0 → 1.0.0)
+- Generates `CHANGELOG.md` automatically
+- Creates GitHub Release with release notes
+- Updates `package.json` versions
+
+**6. Dependabot (`.github/dependabot.yml`)**
+
+**Automated dependency updates:**
+- Backend npm dependencies (weekly, Monday 9 AM)
+- Frontend npm dependencies (weekly, Monday 9 AM)
+- Docker base images (monthly)
+- GitHub Actions versions (monthly)
+- Auto-assigns @jjuuniper as reviewer
+
+### Security Features
+
+**1. Scan-Before-Push Strategy**
+- Docker images are built locally first
+- Trivy scans for vulnerabilities
+- Only images that pass scans are pushed to registry
+- Prevents vulnerable images from reaching production
+
+**2. Comprehensive Security Scanning**
+- **TruffleHog**: Scans entire Git history for secrets
+- **npm audit**: Detects vulnerable dependencies
+- **Semgrep**: Static Application Security Testing (SAST)
+- **Trivy**: Container image vulnerability scanning
+- **SBOM Generation**: Tracks all software components
+
+**3. Quality Gates**
+- 80% minimum test coverage (enforced)
+- All linters must pass (ESLint, Prettier)
+- TypeScript type checking must pass
+- All security scans must pass
+- PR title must follow Conventional Commits
+
+### Image Tagging Strategy
+
+**Develop Branch:**
+```
+ghcr.io/jjuuniper/medium_react-express-mongo/backend:develop
+ghcr.io/jjuuniper/medium_react-express-mongo/backend:develop-abc1234
+ghcr.io/jjuuniper/medium_react-express-mongo/frontend:develop
+ghcr.io/jjuuniper/medium_react-express-mongo/frontend:develop-abc1234
+```
+
+**Main Branch:**
+```
+ghcr.io/jjuuniper/medium_react-express-mongo/backend:1.2.3
+ghcr.io/jjuuniper/medium_react-express-mongo/backend:1.2.3-abc1234
+ghcr.io/jjuuniper/medium_react-express-mongo/backend:main
+ghcr.io/jjuuniper/medium_react-express-mongo/backend:latest
+```
+
+### Deployment Workflow
+
+**1. Create Feature Branch**
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/my-new-feature
+
+# Make changes
+git add .
+git commit -m "feat: Add new feature description"
+git push origin feature/my-new-feature
+```
+
+**2. Create Pull Request to Develop**
+- PR title must follow Conventional Commits (e.g., `feat: Add new feature`)
+- All CI checks must pass
+- Requires 1 approval
+- PR checks will comment with coverage report and security summary
+
+**3. Merge to Develop (Auto-Deploy to Staging)**
+```bash
+# After approval and CI passes
+git checkout develop
+git merge feature/my-new-feature
+git push origin develop
+```
+- CI Pipeline runs automatically
+- Images pushed with `develop` tags
+- Auto-deploys to `realworld-staging` namespace
+
+**4. Create Pull Request to Main (Production Release)**
+```bash
+# Create PR: develop → main
+# After approval and CI passes, merge to main
+```
+- CI Pipeline runs
+- Release workflow creates GitHub Release
+- Images pushed with version tags
+- CHANGELOG.md updated automatically
+
+**5. Deploy to Production (Manual)**
+```bash
+# Go to GitHub Actions → Deploy to Production → Run workflow
+# Select branch: main
+# Enter version: 1.2.3 (from GitHub Release)
+# Click "Run workflow"
+# Wait for approval from @jjuuniper
+```
+
+### CI/CD Environment Variables
+
+**GitHub Secrets Required:**
+- `KUBECONFIG_STAGING` - Base64-encoded kubeconfig for staging namespace
+- `KUBECONFIG_PRODUCTION` - Base64-encoded kubeconfig for production namespace
+- `GITHUB_TOKEN` - Auto-provided by GitHub (no action needed)
+
+**GitHub Environments:**
+- **staging**: No protection rules, auto-deploy
+- **production**: Requires approval from @jjuuniper
+
+### Troubleshooting CI/CD
+
+**CI Pipeline Fails on Trivy Scan:**
+```bash
+# Update base Docker images
+# Check Dockerfile and update node:18-alpine to latest
+
+# Update vulnerable npm packages
+cd backend  # or frontend
+npm audit fix
+npm audit fix --force  # If needed
+```
+
+**Staging Deployment Fails:**
+```bash
+# Check pod logs
+kubectl logs -n realworld-staging -l app.kubernetes.io/name=backend --tail=100
+
+# Check pod events
+kubectl get events -n realworld-staging --sort-by='.lastTimestamp'
+```
+
+**Production Deployment Stuck:**
+- Go to GitHub Actions → Deploy to Production → Running workflow
+- Click "Review deployments" button
+- Select "production" environment
+- Click "Approve and deploy"
+
+**Coverage Below 80%:**
+```bash
+# Run coverage locally
+cd backend
+npm run test:coverage
+open coverage/lcov-report/index.html
+
+# Add more tests to increase coverage
+```
+
+### Documentation
+
+- **CICD_SETUP.md**: Complete CI/CD setup guide with GitHub configuration
+- **CICD_SPECIFICATION.md**: Technical specification and architectural decisions
+- **CLAUDE.md**: This file (project overview and guidelines)
+
+### Development Best Practices
+
+**Commit Messages:**
+- Use Conventional Commits format
+- Examples:
+  - `feat: Add user authentication`
+  - `fix: Resolve database connection issue`
+  - `docs: Update API documentation`
+  - `chore: Update dependencies`
+
+**Pull Requests:**
+- Keep PRs focused and small (<500 lines if possible)
+- Ensure all tests pass locally before pushing
+- Run `npm run lint` and `npm test` before creating PR
+- Add descriptive PR descriptions
+
+**Testing:**
+- Maintain 80% or higher test coverage
+- Write unit tests for new features
+- Update tests when modifying existing code
 
 ## Environment Variables Required
 - `DATABASE_URI` - MongoDB connection string

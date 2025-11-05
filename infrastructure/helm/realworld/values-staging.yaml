@@ -1,5 +1,5 @@
 global:
-  environment: development
+  environment: staging
 
 replicaCount:
   backend: 1

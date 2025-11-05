@@ -25,3 +25,6 @@ values-local-*.yaml
 *.pem
 *.crt
 .vault-token
+# Local kubeconfig files (sensitive!)
+kubeconfig*.yaml
+kubeconfig*.txt

@@ -1,0 +1,181 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # Create commits, tags, and GitHub releases
+      issues: write          # Comment on issues (semantic-release/github plugin)
+      pull-requests: write   # Comment on PRs (semantic-release/github plugin)
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install semantic-release and plugins
+        run: |
+          npm install -g \
+            semantic-release@^23.0.0 \
+            @semantic-release/commit-analyzer@^12.0.0 \
+            @semantic-release/release-notes-generator@^13.0.0 \
+            @semantic-release/changelog@^6.0.3 \
+            @semantic-release/github@^10.0.0 \
+            @semantic-release/git@^10.0.1 \
+            conventional-changelog-conventionalcommits@^7.0.2
+
+      - name: Create semantic-release config
+        run: |
+          cat > .releaserc.json << 'EOF'
+          {
+            "branches": ["main"],
+            "plugins": [
+              [
+                "@semantic-release/commit-analyzer",
+                {
+                  "preset": "conventionalcommits",
+                  "releaseRules": [
+                    { "type": "feat", "release": "minor" },
+                    { "type": "fix", "release": "patch" },
+                    { "type": "perf", "release": "patch" },
+                    { "type": "revert", "release": "patch" },
+                    { "type": "docs", "release": "patch" },
+                    { "type": "style", "release": "patch" },
+                    { "type": "refactor", "release": "patch" },
+                    { "type": "test", "release": "patch" },
+                    { "type": "build", "release": "patch" },
+                    { "type": "ci", "release": "patch" },
+                    { "type": "chore", "release": false },
+                    { "breaking": true, "release": "major" }
+                  ]
+                }
+              ],
+              [
+                "@semantic-release/release-notes-generator",
+                {
+                  "preset": "conventionalcommits",
+                  "presetConfig": {
+                    "types": [
+                      { "type": "feat", "section": "Features" },
+                      { "type": "fix", "section": "Bug Fixes" },
+                      { "type": "perf", "section": "Performance Improvements" },
+                      { "type": "revert", "section": "Reverts" },
+                      { "type": "docs", "section": "Documentation" },
+                      { "type": "style", "section": "Styles" },
+                      { "type": "refactor", "section": "Code Refactoring" },
+                      { "type": "test", "section": "Tests" },
+                      { "type": "build", "section": "Build System" },
+                      { "type": "ci", "section": "Continuous Integration" }
+                    ]
+                  }
+                }
+              ],
+              [
+                "@semantic-release/changelog",
+                {
+                  "changelogFile": "CHANGELOG.md"
+                }
+              ],
+              [
+                "@semantic-release/github",
+                {
+                  "assets": [
+                    { "path": "CHANGELOG.md", "label": "Changelog" }
+                  ]
+                }
+              ],
+              [
+                "@semantic-release/git",
+                {
+                  "assets": ["CHANGELOG.md", "backend/package.json", "frontend/package.json"],
+                  "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+                }
+              ]
+            ]
+          }
+          EOF
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
+        run: npx semantic-release
+
+      - name: Get new version
+        id: version
+        run: |
+          if [ -f backend/package.json ]; then
+            VERSION=$(cat backend/package.json | jq -r '.version')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "New version: $VERSION"
+          else
+            echo "version=unknown" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update package versions
+        if: steps.version.outputs.version != 'unknown'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          # Update backend package.json if it exists
+          if [ -f backend/package.json ]; then
+            jq --arg version "$VERSION" '.version = $version' backend/package.json > backend/package.json.tmp
+            mv backend/package.json.tmp backend/package.json
+          fi
+
+          # Update frontend package.json if it exists
+          if [ -f frontend/package.json ]; then
+            jq --arg version "$VERSION" '.version = $version' frontend/package.json > frontend/package.json.tmp
+            mv frontend/package.json.tmp frontend/package.json
+          fi
+
+      - name: Create release summary
+        if: steps.version.outputs.version != 'unknown'
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** main" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. GitHub Release has been created automatically" >> $GITHUB_STEP_SUMMARY
+          echo "2. CHANGELOG.md has been updated" >> $GITHUB_STEP_SUMMARY
+          echo "3. Docker images with version tags are available in GitHub Container Registry" >> $GITHUB_STEP_SUMMARY
+          echo "4. To deploy to production, run the 'Deploy to Production' workflow manually" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Production Deployment:**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# Go to Actions → Deploy to Production → Run workflow" >> $GITHUB_STEP_SUMMARY
+          echo "# Enter version: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read  # Only needs to read repository info
+    needs: [release]
+    if: success()
+    steps:
+      - name: Notify release success
+        run: |
+          echo "✅ Release created successfully!"
+          echo "Check the Releases page for details: https://github.com/${{ github.repository }}/releases"
