@@ -220,11 +220,21 @@ Templated deployments with environment-specific configurations:
 docker build --target development -t realworld-backend:dev ./backend
 docker build --target development -t realworld-frontend:dev ./frontend
 
+# IMPORTANT: Pre-create namespace with Helm ownership labels
+# This is required for proper Helm tracking and lifecycle management
+kubectl create namespace realworld-staging
+kubectl label namespace realworld-staging app.kubernetes.io/managed-by=Helm
+kubectl annotate namespace realworld-staging \
+  meta.helm.sh/release-name=realworld \
+  meta.helm.sh/release-namespace=realworld-staging
+
 # Deploy staging environment (1 replica each, demo secrets)
-helm install realworld ./infrastructure/helm/realworld -f ./infrastructure/helm/realworld/values-staging.yaml
+helm install realworld ./infrastructure/helm/realworld \
+  -f ./infrastructure/helm/realworld/values-staging.yaml \
+  -n realworld-staging
 
 # Access application
-kubectl port-forward svc/frontend 3000:3000 -n realworld
+kubectl port-forward svc/frontend 3000:3000 -n realworld-staging
 # Visit: http://localhost:3000
 ```
 
@@ -234,14 +244,22 @@ kubectl port-forward svc/frontend 3000:3000 -n realworld
 docker build --target production -t realworld-backend:latest ./backend
 docker build --target production -t realworld-frontend:latest ./frontend
 
+# IMPORTANT: Pre-create namespace with Helm ownership labels
+kubectl create namespace realworld-production
+kubectl label namespace realworld-production app.kubernetes.io/managed-by=Helm
+kubectl annotate namespace realworld-production \
+  meta.helm.sh/release-name=realworld \
+  meta.helm.sh/release-namespace=realworld-production
+
 # Deploy production environment (3 replicas each, external secrets)
 helm install realworld ./infrastructure/helm/realworld \
   -f ./infrastructure/helm/realworld/values.yaml \
   -f ./infrastructure/helm/realworld/values-prod.yaml \
-  -f ./infrastructure/helm/realworld/values-local-secrets.yaml
+  -f ./infrastructure/helm/realworld/values-local-secrets.yaml \
+  -n realworld-production
 
 # Access application
-kubectl port-forward svc/frontend 3001:3000 -n realworld
+kubectl port-forward svc/frontend 3001:3000 -n realworld-production
 # Visit: http://localhost:3001
 ```
 
@@ -268,28 +286,62 @@ kubectl port-forward svc/frontend 3001:3000 -n realworld
 - **Security**: All production secrets protected by `.gitignore` patterns
 - **StatefulSet DNS**: Uses `mongodb-0.mongodb` for headless service resolution
 
+### Namespace Pre-Creation Pattern
+
+**Why we pre-create namespaces:**
+Helm requires the namespace specified in `-n` to exist before installation, even when the chart contains a namespace template. Pre-creating the namespace with Helm ownership labels allows the chart's namespace template to be properly tracked as part of the release.
+
+**Benefits:**
+- Namespace included in `helm get manifest` (full infrastructure visibility)
+- Namespace has custom labels (environment, name) for organization
+- `helm uninstall` removes everything including the namespace (complete lifecycle management)
+- Proper Helm adoption of existing resources
+
+**Technical Details:**
+The namespace template ([templates/namespace.yaml](infrastructure/helm/realworld/templates/namespace.yaml)) creates the namespace resource with labels. By pre-creating the namespace with matching ownership annotations, Helm adopts it during installation rather than failing with "namespace not found."
+
 ### Deployment Workflow
 ```bash
 # 1. Choose environment and build appropriate images
 # Staging:
 docker build --target development -t realworld-backend:dev ./backend
 docker build --target development -t realworld-frontend:dev ./frontend
-helm install realworld ./infrastructure/helm/realworld -f ./infrastructure/helm/realworld/values-staging.yaml
+
+# Pre-create namespace with Helm ownership
+kubectl create namespace realworld-staging
+kubectl label namespace realworld-staging app.kubernetes.io/managed-by=Helm
+kubectl annotate namespace realworld-staging \
+  meta.helm.sh/release-name=realworld \
+  meta.helm.sh/release-namespace=realworld-staging
+
+helm install realworld ./infrastructure/helm/realworld \
+  -f ./infrastructure/helm/realworld/values-staging.yaml \
+  -n realworld-staging
 
 # Production:
 docker build --target production -t realworld-backend:latest ./backend
 docker build --target production -t realworld-frontend:latest ./frontend
+
+# Pre-create namespace with Helm ownership
+kubectl create namespace realworld-production
+kubectl label namespace realworld-production app.kubernetes.io/managed-by=Helm
+kubectl annotate namespace realworld-production \
+  meta.helm.sh/release-name=realworld \
+  meta.helm.sh/release-namespace=realworld-production
+
 helm install realworld ./infrastructure/helm/realworld \
   -f ./infrastructure/helm/realworld/values.yaml \
   -f ./infrastructure/helm/realworld/values-prod.yaml \
-  -f ./infrastructure/helm/realworld/values-local-secrets.yaml
+  -f ./infrastructure/helm/realworld/values-local-secrets.yaml \
+  -n realworld-production
 
 # 2. Verify deployment
-kubectl get pods -n realworld -w
+kubectl get pods -n realworld-staging -w  # Staging
+kubectl get pods -n realworld-production -w  # Production
 
 # 3. Access application
-kubectl port-forward svc/frontend 3000:3000 -n realworld  # Staging
-kubectl port-forward svc/frontend 3001:3000 -n realworld  # Prod
+kubectl port-forward svc/frontend 3000:3000 -n realworld-staging  # Staging
+kubectl port-forward svc/frontend 3001:3000 -n realworld-production  # Production
 ```
 
 ### Troubleshooting & Restart Deployments
@@ -304,8 +356,13 @@ kubectl rollout restart deployment -n realworld
 kubectl rollout restart statefulset/mongodb -n realworld
 
 # Complete restart (when upgrade fails)
-helm uninstall realworld
-# Then reinstall with appropriate values file
+# Option 1: Clean uninstall (removes namespace and all resources)
+helm uninstall realworld -n realworld-staging  # Or -n realworld-production
+
+# Note: helm uninstall removes ALL resources including the namespace (pods, services,
+# deployments, secrets, PVCs, etc.). This is a complete cleanup.
+
+# Then reinstall using the deployment workflow above (pre-create namespace, then install)
 
 # Force image updates (rebuild images first, then upgrade)
 helm upgrade realworld ./infrastructure/helm/realworld -f ./infrastructure/helm/realworld/values-<env>.yaml
@@ -561,6 +618,29 @@ kubectl delete namespace monitoring
 
 # Note: RealWorld application will continue to work without monitoring
 ```
+
+### Complete Teardown (Everything)
+
+To completely remove all deployments and start fresh:
+
+```bash
+# 1. Remove RealWorld application
+helm uninstall realworld
+
+# 2. Remove monitoring stack
+helm uninstall monitoring -n monitoring
+
+# 3. Delete all namespaces (cascading delete of all resources)
+kubectl delete namespace realworld-staging
+kubectl delete namespace realworld-production
+kubectl delete namespace monitoring
+
+# 4. Verify cleanup
+kubectl get namespaces | grep realworld
+helm list -A
+```
+
+**Note:** Deleting namespaces is a cascading operation that removes ALL resources within them (pods, services, deployments, secrets, PVCs, etc.). This may take 30-60 seconds to complete.
 
 ### Example Prometheus Queries
 

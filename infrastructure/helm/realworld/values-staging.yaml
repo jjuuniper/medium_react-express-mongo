@@ -1,4 +1,5 @@
 global:
+  namespace: realworld-staging
   environment: staging
 
 replicaCount:

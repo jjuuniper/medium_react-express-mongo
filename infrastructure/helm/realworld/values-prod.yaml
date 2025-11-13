@@ -1,4 +1,5 @@
 global:
+  namespace: realworld-production
   environment: production
 
 replicaCount:
