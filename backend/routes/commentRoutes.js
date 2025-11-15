@@ -8,6 +8,6 @@ router.post('/:slug/comments', verifyJWT, commentController.addCommentsToArticle
 
 router.get('/:slug/comments', verifyJWTOptional, commentController.getCommentsFromArticle);
 
-router.delete('/:slug/comments/:id', verifyJWT, commentController.deleteComment)
+router.delete('/:slug/comments/:id', verifyJWT, commentController.deleteComment);
 
 module.exports = router;

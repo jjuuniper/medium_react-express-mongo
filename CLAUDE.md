@@ -426,7 +426,13 @@ kubectl port-forward -n monitoring svc/monitoring-grafana 3001:80
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-# 2. Install kube-prometheus-stack with production configuration
+# 2. (Option 1) Install kube-prometheus-stack with production configuration
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  -f infrastructure/helm/monitoring/values-prod.yaml \
+  -f infrastructure/helm/monitoring/values-local-secrets.yaml \
+  -n monitoring --create-namespace
+
+# (Option 2) Generates random admin password
 helm install monitoring prometheus-community/kube-prometheus-stack \
   -f infrastructure/helm/monitoring/values-prod.yaml \
   --set grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD" \
@@ -625,15 +631,16 @@ To completely remove all deployments and start fresh:
 
 ```bash
 # 1. Remove RealWorld application
-helm uninstall realworld
+helm uninstall realworld -n realworld-staging
+helm uninstall realworld -n realworld-production
 
 # 2. Remove monitoring stack
 helm uninstall monitoring -n monitoring
+kubectl delete namespace monitoring # Note: This is required since helm does not remove namespace for third-party releases
 
 # 3. Delete all namespaces (cascading delete of all resources)
 kubectl delete namespace realworld-staging
 kubectl delete namespace realworld-production
-kubectl delete namespace monitoring
 
 # 4. Verify cleanup
 kubectl get namespaces | grep realworld
