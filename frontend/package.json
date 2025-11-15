@@ -9,6 +9,7 @@
     "lint": "next lint",
     "prepare": "husky",
     "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "openapi-generate": "openapi-typescript ./api/openapi.yml --output ./src/generated/apiSchema.generated.d.ts"
   },
   "dependencies": {
