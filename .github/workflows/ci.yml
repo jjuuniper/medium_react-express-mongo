@@ -75,6 +75,21 @@ jobs:
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password123
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ping: 1})' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -92,6 +107,11 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: backend
+        env:
+          MONGO_HOST: localhost
+          MONGO_ROOT_USERNAME: admin
+          MONGO_ROOT_PASSWORD: password123
+          MONGO_DB_NAME: realworld
         run: npm run test:coverage
 
       - name: Check coverage threshold
