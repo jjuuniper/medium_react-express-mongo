@@ -112,6 +112,7 @@ jobs:
           MONGO_ROOT_USERNAME: admin
           MONGO_ROOT_PASSWORD: password123
           MONGO_DB_NAME: realworld
+          ACCESS_TOKEN_SECRET: test-secret-key-for-ci-testing-only
         run: npm run test:coverage
 
       - name: Check coverage threshold
