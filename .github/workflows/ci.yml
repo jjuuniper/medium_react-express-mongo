@@ -227,8 +227,8 @@ jobs:
           context: ./backend
           push: false
           tags: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:build-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend-${{ hashFiles('backend/package-lock.json') }}
+          cache-to: type=gha,mode=max,scope=backend-${{ hashFiles('backend/package-lock.json') }}
           outputs: type=docker,dest=/tmp/backend-image.tar
 
       - name: Upload backend image artifact
@@ -255,8 +255,8 @@ jobs:
           context: ./frontend
           push: false
           tags: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:build-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend-${{ hashFiles('frontend/package-lock.json') }}
+          cache-to: type=gha,mode=max,scope=frontend-${{ hashFiles('frontend/package-lock.json') }}
           outputs: type=docker,dest=/tmp/frontend-image.tar
 
       - name: Upload frontend image artifact
