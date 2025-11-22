@@ -305,6 +305,7 @@ jobs:
           format: 'sarif'
           output: 'backend-trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          limit-severities-for-sarif: true
           exit-code: '1'  # Fail if vulnerabilities found
 
       - name: Upload Trivy results to GitHub Security
@@ -355,6 +356,7 @@ jobs:
           format: 'sarif'
           output: 'frontend-trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          limit-severities-for-sarif: true
           exit-code: '1'  # Fail if vulnerabilities found
 
       - name: Upload Trivy results to GitHub Security
