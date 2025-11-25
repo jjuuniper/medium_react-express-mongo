@@ -154,14 +154,15 @@ jobs:
           fi
 
       - name: Comment coverage on PR
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const coverage = ${{ steps.coverage.outputs.coverage }};
-            const statements = ${{ steps.coverage.outputs.statements }};
-            const branches = ${{ steps.coverage.outputs.branches }};
-            const functions = ${{ steps.coverage.outputs.functions }};
-            const status = '${{ steps.coverage.outputs.status }}';
+            const coverage = parseFloat('${{ steps.coverage.outputs.coverage }}') || 0;
+            const statements = parseFloat('${{ steps.coverage.outputs.statements }}') || 0;
+            const branches = parseFloat('${{ steps.coverage.outputs.branches }}') || 0;
+            const functions = parseFloat('${{ steps.coverage.outputs.functions }}') || 0;
+            const status = '${{ steps.coverage.outputs.status }}' || '❌';
 
             const comment = `## ${status} Test Coverage Report
 
