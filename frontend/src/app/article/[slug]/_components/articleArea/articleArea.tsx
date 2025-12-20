@@ -8,6 +8,7 @@ import { FollowButton } from "@/modules/features/profile/components/followButton
 import { Article, User } from "@/utils/types/models";
 import Link from "next/link";
 import { ReactNode } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import styles from "./articleArea.module.css";
 import { showDeleteArticleButton, showEditArticleButton, showFollowButton } from "./functions";
 import { getSession } from "@/utils/auth/session";
@@ -44,6 +45,7 @@ const Actions = ({ article, currentUser }: { article: Article; currentUser?: Use
 export const ArticleArea = async ({ slug, children }: { slug: string; children: ReactNode }) => {
   const article = await fetchArticle(slug);
   const body = await convertMarkdownToHtml(article.body);
+  const sanitizedBody = DOMPurify.sanitize(body);
   const currentUser = (await getSession()) ? await fetchCurrentUser() : undefined;
 
   return (
@@ -58,7 +60,7 @@ export const ArticleArea = async ({ slug, children }: { slug: string; children: 
       <div className="container page">
         <div className="row article-content">
           <div className="col-md-12">
-            <div dangerouslySetInnerHTML={{ __html: body }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizedBody }} />
             <ul className="tag-list">
               {article.tagList.map((tag, index) => (
                 <Tag component="li" variant="outline" key={index}>
