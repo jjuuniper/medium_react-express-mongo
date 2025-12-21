@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Next.js frontend
 
 # Base stage - common setup
-FROM node:18-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 
@@ -38,7 +38,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:25-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
