@@ -16,7 +16,7 @@
     "@conform-to/react": "^1.2.2",
     "@conform-to/zod": "^1.2.2",
     "clsx": "^2.1.1",
-    "ionicons": "^2.0.1",
+    "ionicons": "^8.0.13",
     "isomorphic-dompurify": "2.16.0",
     "next": "^15.2.4",
     "react": "^18.3",
