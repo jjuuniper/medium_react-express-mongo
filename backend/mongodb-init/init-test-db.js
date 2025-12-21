@@ -1,7 +1,5 @@
-/* eslint-disable no-undef */
 // MongoDB initialization script to create test database
 // This script runs when the MongoDB container starts for the first time
-// Note: 'db' and 'print' are MongoDB shell globals
 
 print('Creating test database and user permissions...');
 

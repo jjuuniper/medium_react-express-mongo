@@ -11,7 +11,6 @@ module.exports = {
     '!**/node_modules/**'
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'json-summary'],
   verbose: true,
   forceExit: true,
   clearMocks: true,

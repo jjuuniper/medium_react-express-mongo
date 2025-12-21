@@ -13,16 +13,16 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // confirm data
     if (!user || !user.email || !user.username || !user.password) {
-        return res.status(400).json({message: 'All fields are required'});
+        return res.status(400).json({message: "All fields are required"});
     }
 
     // hash password
     const hashedPwd = await bcrypt.hash(user.password, 10); // salt rounds
 
     const userObject = {
-        'username': user.username,
-        'password': hashedPwd,
-        'email': user.email
+        "username": user.username,
+        "password": hashedPwd,
+        "email": user.email
     };
 
     try {
@@ -41,7 +41,7 @@ const registerUser = asyncHandler(async (req, res) => {
         // Handle other database errors
         return res.status(422).json({
             errors: {
-                body: 'Unable to register a user'
+                body: "Unable to register a user"
             }
         });
     }
@@ -58,12 +58,12 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email }).exec();
 
     if (!user) {
-        return res.status(404).json({message: 'User Not Found'});
+        return res.status(404).json({message: "User Not Found"});
     }
 
     res.status(200).json({
         user: user.toUserResponse()
-    });
+    })
 
 });
 
@@ -77,7 +77,7 @@ const userLogin = asyncHandler(async (req, res) => {
 
     // confirm data
     if (!user || !user.email || !user.password) {
-        return res.status(400).json({message: 'All fields are required'});
+        return res.status(400).json({message: "All fields are required"});
     }
 
     const loginUser = await User.findOne({ email: user.email }).exec();
@@ -85,12 +85,12 @@ const userLogin = asyncHandler(async (req, res) => {
     // console.log(loginUser);
 
     if (!loginUser) {
-        return res.status(404).json({message: 'User Not Found'});
+        return res.status(404).json({message: "User Not Found"});
     }
 
     const match = await bcrypt.compare(user.password, loginUser.password);
 
-    if (!match) return res.status(401).json({ message: 'Unauthorized: Wrong password' });
+    if (!match) return res.status(401).json({ message: 'Unauthorized: Wrong password' })
 
     res.status(200).json({
         user: loginUser.toUserResponse()
@@ -108,7 +108,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
     // confirm data
     if (!user) {
-        return res.status(400).json({message: 'Required a User object'});
+        return res.status(400).json({message: "Required a User object"});
     }
 
     const email = req.userEmail;
@@ -144,4 +144,4 @@ module.exports = {
     getCurrentUser,
     userLogin,
     updateUser
-};
+}
