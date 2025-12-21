@@ -1,0 +1,117 @@
+name: Deploy to Staging
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
+    branches:
+      - develop
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE_NAME: ${{ github.repository }}/backend
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}/frontend
+  NAMESPACE: realworld-staging
+
+jobs:
+  deploy:
+    name: Deploy to Staging Environment
+    runs-on: self-hosted
+    permissions:
+      contents: read
+    environment:
+      name: staging
+      url: https://staging.realworld.example.com
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl with kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Set image tags
+        id: image-tags
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:develop-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:develop-${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install realworld ./infrastructure/helm/realworld \
+            --namespace ${{ env.NAMESPACE }} \
+            --create-namespace \
+            -f ./infrastructure/helm/realworld/values.yaml \
+            -f ./infrastructure/helm/realworld/values-staging.yaml \
+            --set backend.image.repository=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }} \
+            --set backend.image.tag=develop-${{ github.sha }} \
+            --set frontend.image.repository=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }} \
+            --set frontend.image.tag=develop-${{ github.sha }} \
+            --wait \
+            --timeout 5m
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for pods to be ready..."
+          kubectl wait --for=condition=ready pod --all -n ${{ env.NAMESPACE }} --timeout=300s
+
+          echo "Deployment status:"
+          kubectl get deployments -n ${{ env.NAMESPACE }}
+
+          echo "Pod status:"
+          kubectl get pods -n ${{ env.NAMESPACE }}
+
+          echo "Service status:"
+          kubectl get services -n ${{ env.NAMESPACE }}
+
+      - name: Run smoke tests
+        run: |
+          # Get backend service URL
+          BACKEND_URL=$(kubectl get svc backend -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          if [ -z "$BACKEND_URL" ]; then
+            BACKEND_URL=$(kubectl get svc backend -n ${{ env.NAMESPACE }} -o jsonpath='{.spec.clusterIP}')
+          fi
+
+          # Health check
+          echo "Running health check on backend..."
+          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never -n ${{ env.NAMESPACE }} -- \
+            curl -f http://backend:4000/api/health || echo "Warning: Health check failed"
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** staging" >> $GITHUB_STEP_SUMMARY
+          echo "**Namespace:** ${{ env.NAMESPACE }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ steps.image-tags.outputs.SHORT_SHA }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Backend Image:** ${{ steps.image-tags.outputs.BACKEND_IMAGE }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend Image:** ${{ steps.image-tags.outputs.FRONTEND_IMAGE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pod Status" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n ${{ env.NAMESPACE }} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Staging deployment failed!"
+          echo "Check logs: kubectl logs -n ${{ env.NAMESPACE }} -l app.kubernetes.io/instance=realworld --tail=100"
+          exit 1

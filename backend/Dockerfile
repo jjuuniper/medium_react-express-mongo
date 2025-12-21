@@ -31,8 +31,10 @@ CMD ["npm", "run", "dev"]
 # Production stage
 FROM base AS production
 ENV NODE_ENV=production
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install only production dependencies, then remove npm to reduce attack surface
+RUN npm ci --only=production && \
+    npm cache clean --force && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

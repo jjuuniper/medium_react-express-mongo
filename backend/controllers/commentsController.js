@@ -10,7 +10,7 @@ const addCommentsToArticle = asyncHandler(async (req, res) => {
 
     if (!commenter) {
         return res.status(401).json({
-            message: "User Not Found"
+            message: 'User Not Found'
         });
     }
     const { slug } = req.params;
@@ -20,7 +20,7 @@ const addCommentsToArticle = asyncHandler(async (req, res) => {
 
     if (!article) {
         return res.status(401).json({
-            message: "Article Not Found"
+            message: 'Article Not Found'
         });
     }
 
@@ -36,7 +36,7 @@ const addCommentsToArticle = asyncHandler(async (req, res) => {
 
     return res.status(200).json({
         comment: await newComment.toCommentResponse(commenter)
-    })
+    });
 
 });
 
@@ -47,7 +47,7 @@ const getCommentsFromArticle = asyncHandler(async (req, res) => {
 
     if (!article) {
         return res.status(401).json({
-            message: "Article Not Found"
+            message: 'Article Not Found'
         });
     }
 
@@ -60,7 +60,7 @@ const getCommentsFromArticle = asyncHandler(async (req, res) => {
                 const commentObj = await Comment.findById(commentId).exec();
                 return await commentObj.toCommentResponse(loginUser);
             }))
-        })
+        });
     } else {
         return await res.status(200).json({
             comments: await Promise.all(article.comments.map(async (commentId) => {
@@ -70,7 +70,7 @@ const getCommentsFromArticle = asyncHandler(async (req, res) => {
                 // console.log(temp);
                 return temp;
             }))
-        })
+        });
     }
 });
 
@@ -81,7 +81,7 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     if (!commenter) {
         return res.status(401).json({
-            message: "User Not Found"
+            message: 'User Not Found'
         });
     }
     const { slug, id } = req.params;
@@ -90,7 +90,7 @@ const deleteComment = asyncHandler(async (req, res) => {
 
     if (!article) {
         return res.status(401).json({
-            message: "Article Not Found"
+            message: 'Article Not Found'
         });
     }
 
@@ -103,12 +103,12 @@ const deleteComment = asyncHandler(async (req, res) => {
         await article.removeComment(comment._id);
         await Comment.deleteOne({ _id: comment._id });
         return res.status(200).json({
-            message: "comment has been successfully deleted!!!"
+            message: 'comment has been successfully deleted!!!'
         });
     } else {
         return res.status(403).json({
-            error: "only the author of the comment can delete the comment"
-        })
+            error: 'only the author of the comment can delete the comment'
+        });
     }
 });
 
@@ -116,4 +116,4 @@ module.exports = {
     addCommentsToArticle,
     getCommentsFromArticle,
     deleteComment
-}
+};
