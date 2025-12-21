@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for development and production
 
 # Base stage - common setup
-FROM node:18-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 
