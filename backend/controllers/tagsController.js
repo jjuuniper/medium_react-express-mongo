@@ -12,4 +12,4 @@ const getTags = asyncHandler( async (req, res) => {
 
 module.exports = {
     getTags
-};
+}

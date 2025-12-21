@@ -10,8 +10,8 @@ const getProfile = asyncHandler(async (req, res) => {
 
     if (!user) {
         return res.status(404).json({
-            message: 'User Not Found'
-        });
+            message: "User Not Found"
+        })
     }
     if (!loggedin) {
         return res.status(200).json({
@@ -21,7 +21,7 @@ const getProfile = asyncHandler(async (req, res) => {
         const loginUser = await User.findOne({ email: req.userEmail }).exec();
         return res.status(200).json({
             profile: user.toProfileJSON(loginUser)
-        });
+        })
     }
 
 });
@@ -34,14 +34,14 @@ const followUser = asyncHandler(async (req, res) => {
 
     if (!user || !loginUser) {
         return res.status(404).json({
-            message: 'User Not Found'
-        });
+            message: "User Not Found"
+        })
     }
     await loginUser.follow(user._id);
 
     return res.status(200).json({
         profile: user.toProfileJSON(loginUser)
-    });
+    })
 
 });
 
@@ -53,14 +53,14 @@ const unFollowUser = asyncHandler(async (req, res) => {
 
     if (!user || !loginUser) {
         return res.status(404).json({
-            message: 'User Not Found'
-        });
+            message: "User Not Found"
+        })
     }
     await loginUser.unfollow(user._id);
 
     return res.status(200).json({
         profile: user.toProfileJSON(loginUser)
-    });
+    })
 
 });
 
@@ -68,4 +68,4 @@ module.exports = {
     getProfile,
     followUser,
     unFollowUser
-};
+}

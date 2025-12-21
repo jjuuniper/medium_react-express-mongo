@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const User = require('./User');
+const User = require("./User");
 
 const commentSchema = new mongoose.Schema({
     body: {
@@ -28,7 +28,7 @@ commentSchema.methods.toCommentResponse = async function (user) {
         createdAt: this.createdAt,
         updatedAt: this.updatedAt,
         author: authorObj.toProfileJSON(user)
-    };
+    }
 };
 
 module.exports = mongoose.model('Comment', commentSchema);

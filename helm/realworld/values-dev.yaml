@@ -1,6 +1,5 @@
 global:
-  namespace: realworld-staging
-  environment: staging
+  environment: development
 
 replicaCount:
   backend: 1
@@ -13,9 +12,6 @@ image:
   frontend:
     tag: dev
     pullPolicy: Always
-
-imagePullSecrets:
-  - name: ghcr-secret
 
 mongodb:
   storage: 2Gi
