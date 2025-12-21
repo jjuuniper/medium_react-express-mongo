@@ -309,7 +309,7 @@ jobs:
           exit-code: '1'  # Fail if vulnerabilities found
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && github.event_name == 'push'
         continue-on-error: true
         with:
@@ -361,7 +361,7 @@ jobs:
           exit-code: '1'  # Fail if vulnerabilities found
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && github.event_name == 'push'
         continue-on-error: true
         with:
