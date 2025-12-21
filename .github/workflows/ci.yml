@@ -126,7 +126,7 @@ jobs:
           fi
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backend-coverage
           path: backend/coverage/
@@ -232,7 +232,7 @@ jobs:
           outputs: type=docker,dest=/tmp/backend-image.tar
 
       - name: Upload backend image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backend-image
           path: /tmp/backend-image.tar
@@ -260,7 +260,7 @@ jobs:
           outputs: type=docker,dest=/tmp/frontend-image.tar
 
       - name: Upload frontend image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-image
           path: /tmp/frontend-image.tar
@@ -324,7 +324,7 @@ jobs:
           output: 'backend-sbom.json'
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backend-sbom
           path: backend-sbom.json
@@ -376,7 +376,7 @@ jobs:
           output: 'frontend-sbom.json'
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-sbom
           path: frontend-sbom.json
