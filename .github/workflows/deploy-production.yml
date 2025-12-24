@@ -17,7 +17,7 @@ env:
 jobs:
   deploy:
     name: Deploy to Production Environment
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: read  # Required for actions/checkout
     environment:
