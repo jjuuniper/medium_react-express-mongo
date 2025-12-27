@@ -73,10 +73,10 @@ jobs:
             --namespace ${{ env.NAMESPACE }} \
             -f ./infrastructure/helm/realworld/values.yaml \
             -f ./infrastructure/helm/realworld/values-staging.yaml \
-            --set backend.image.repository=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }} \
-            --set backend.image.tag=develop-${{ github.sha }} \
-            --set frontend.image.repository=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }} \
-            --set frontend.image.tag=develop-${{ github.sha }} \
+            --set image.backend.repository=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }} \
+            --set image.backend.tag=develop-${{ github.sha }} \
+            --set image.frontend.repository=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }} \
+            --set image.frontend.tag=develop-${{ github.sha }} \
             --wait \
             --timeout 5m
 
