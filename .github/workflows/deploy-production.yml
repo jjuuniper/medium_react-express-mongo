@@ -105,10 +105,10 @@ jobs:
             --namespace ${{ env.NAMESPACE }} \
             -f ./infrastructure/helm/realworld/values.yaml \
             -f ./infrastructure/helm/realworld/values-prod.yaml \
-            --set backend.image.repository=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }} \
-            --set backend.image.tag=$VERSION \
-            --set frontend.image.repository=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }} \
-            --set frontend.image.tag=$VERSION \
+            --set image.backend.repository=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }} \
+            --set image.backend.tag=$VERSION \
+            --set image.frontend.repository=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }} \
+            --set image.frontend.tag=$VERSION \
             --wait \
             --timeout 10m
 
