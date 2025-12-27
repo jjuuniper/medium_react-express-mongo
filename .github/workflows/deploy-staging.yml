@@ -54,11 +54,23 @@ jobs:
           echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:develop-${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
 
+      - name: Create namespace with Helm ownership
+        run: |
+          if ! kubectl get namespace ${{ env.NAMESPACE }} &> /dev/null; then
+            echo "Creating namespace ${{ env.NAMESPACE }}"
+            kubectl create namespace ${{ env.NAMESPACE }}
+            kubectl label namespace ${{ env.NAMESPACE }} app.kubernetes.io/managed-by=Helm
+            kubectl annotate namespace ${{ env.NAMESPACE }} \
+              meta.helm.sh/release-name=realworld \
+              meta.helm.sh/release-namespace=${{ env.NAMESPACE }}
+          else
+            echo "Namespace ${{ env.NAMESPACE }} already exists"
+          fi
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install realworld ./infrastructure/helm/realworld \
             --namespace ${{ env.NAMESPACE }} \
-            --create-namespace \
             -f ./infrastructure/helm/realworld/values.yaml \
             -f ./infrastructure/helm/realworld/values-staging.yaml \
             --set backend.image.repository=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }} \
