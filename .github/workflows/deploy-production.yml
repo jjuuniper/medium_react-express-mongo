@@ -76,6 +76,16 @@ jobs:
             echo "Namespace ${{ env.NAMESPACE }} already exists"
           fi
 
+      - name: Create imagePullSecret for GHCR
+        run: |
+          kubectl create secret docker-registry ghcr-secret \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --docker-email=${{ github.actor }}@users.noreply.github.com \
+            --namespace=${{ env.NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Create backup of current deployment
         run: |
           echo "Creating backup of current production deployment..."
