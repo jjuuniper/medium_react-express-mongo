@@ -1,25 +1,29 @@
-{{- if .Values.frontend.enabled }}
+{{- if .Values.backend.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: backend
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: frontend
-    component: ui
+    app: backend
+    component: api
 spec:
-  replicas: {{ .Values.replicaCount.frontend }}
+  replicas: {{ .Values.replicaCount.backend }}
   selector:
     matchLabels:
-      app: frontend
+      app: backend
   template:
     metadata:
       labels:
-        app: frontend
-        component: ui
+        app: backend
+        component: api
     spec:
       {{- if .Values.serviceAccount.create }}
       serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       securityContext:
         runAsNonRoot: true
@@ -27,11 +31,11 @@ spec:
         runAsGroup: 1001
         fsGroup: 1001
       containers:
-      - name: frontend
-        image: "{{ .Values.image.frontend.repository }}:{{ .Values.image.frontend.tag }}"
-        imagePullPolicy: {{ .Values.image.frontend.pullPolicy }}
+      - name: backend
+        image: "{{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}"
+        imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
         ports:
-        - containerPort: {{ .Values.frontend.port }}
+        - containerPort: {{ .Values.backend.port }}
           name: http
         env:
         - name: NODE_ENV
@@ -39,15 +43,25 @@ spec:
             configMapKeyRef:
               name: realworld-config
               key: NODE_ENV
-        - name: API_BASE_URL
+        - name: PORT
           valueFrom:
             configMapKeyRef:
               name: realworld-config
-              key: API_BASE_URL
+              key: PORT
+        - name: DATABASE_URI
+          valueFrom:
+            secretKeyRef:
+              name: realworld-secret
+              key: DATABASE_URI
+        - name: ACCESS_TOKEN_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: realworld-secret
+              key: ACCESS_TOKEN_SECRET
         livenessProbe:
           httpGet:
             path: /
-            port: {{ .Values.frontend.port }}
+            port: {{ .Values.backend.port }}
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -55,13 +69,13 @@ spec:
         readinessProbe:
           httpGet:
             path: /
-            port: {{ .Values.frontend.port }}
+            port: {{ .Values.backend.port }}
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 5
           failureThreshold: 3
         resources:
-          {{- toYaml .Values.frontend.resources | nindent 10 }}
+          {{- toYaml .Values.backend.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
@@ -69,9 +83,9 @@ spec:
             drop:
             - ALL
       initContainers:
-      - name: wait-for-backend
+      - name: wait-for-mongodb
         image: busybox:1.35
-        command: ['sh', '-c', 'until nc -z backend {{ .Values.backend.port }}; do echo waiting for backend; sleep 2; done;']
+        command: ['sh', '-c', 'until nc -z mongodb-0.mongodb 27017; do echo waiting for mongodb; sleep 2; done;']
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
