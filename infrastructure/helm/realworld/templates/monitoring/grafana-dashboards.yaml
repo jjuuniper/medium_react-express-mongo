@@ -3,11 +3,12 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-dashboard-realworld-overview
+  name: grafana-dashboard-realworld-{{ .Values.global.environment }}
   namespace: monitoring
   labels:
     grafana_dashboard: "1"
     app: grafana
+    environment: {{ .Values.global.environment }}
 data:
   realworld-overview.json: |
     {
@@ -67,7 +68,7 @@ data:
           "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{namespace=\"realworld\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{namespace=\"{{ .Values.global.namespace }}\"}[5m]))",
               "refId": "A"
             }
           ],
@@ -151,17 +152,17 @@ data:
           "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace=\"realworld\",job=\"backend\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace=\"{{ .Values.global.namespace }}\",job=\"backend\"}[5m])) by (le))",
               "legendFormat": "p50",
               "refId": "A"
             },
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"realworld\",job=\"backend\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"{{ .Values.global.namespace }}\",job=\"backend\"}[5m])) by (le))",
               "legendFormat": "p95",
               "refId": "B"
             },
             {
-              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"realworld\",job=\"backend\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"{{ .Values.global.namespace }}\",job=\"backend\"}[5m])) by (le))",
               "legendFormat": "p99",
               "refId": "C"
             }
@@ -224,7 +225,7 @@ data:
           "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{namespace=\"realworld\",status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total{namespace=\"realworld\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{namespace=\"{{ .Values.global.namespace }}\",status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total{namespace=\"{{ .Values.global.namespace }}\"}[5m]))",
               "refId": "A"
             }
           ],
@@ -308,17 +309,17 @@ data:
           "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{namespace=\"realworld\",status_code=~\"2..\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{namespace=\"{{ .Values.global.namespace }}\",status_code=~\"2..\"}[5m]))",
               "legendFormat": "2xx Success",
               "refId": "A"
             },
             {
-              "expr": "sum(rate(http_requests_total{namespace=\"realworld\",status_code=~\"4..\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{namespace=\"{{ .Values.global.namespace }}\",status_code=~\"4..\"}[5m]))",
               "legendFormat": "4xx Client Error",
               "refId": "B"
             },
             {
-              "expr": "sum(rate(http_requests_total{namespace=\"realworld\",status_code=~\"5..\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{namespace=\"{{ .Values.global.namespace }}\",status_code=~\"5..\"}[5m]))",
               "legendFormat": "5xx Server Error",
               "refId": "C"
             }
@@ -392,7 +393,7 @@ data:
           "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "max(mongodb_connection_status{namespace=\"realworld\"})",
+              "expr": "max(mongodb_connection_status{namespace=\"{{ .Values.global.namespace }}\"})",
               "refId": "A",
               "legendFormat": ""
             }
@@ -455,7 +456,7 @@ data:
           "pluginVersion": "10.0.0",
           "targets": [
             {
-              "expr": "count(kube_pod_status_ready{namespace=\"realworld\",condition=\"true\"})",
+              "expr": "count(kube_pod_status_ready{namespace=\"{{ .Values.global.namespace }}\",condition=\"true\"})",
               "refId": "A"
             }
           ],
@@ -474,8 +475,8 @@ data:
       },
       "timepicker": {},
       "timezone": "",
-      "title": "RealWorld - Application Overview",
-      "uid": "realworld-overview",
+      "title": "RealWorld - {{ .Values.global.environment | title }} Overview",
+      "uid": "realworld-{{ .Values.global.environment }}",
       "version": 1,
       "weekStart": ""
     }
