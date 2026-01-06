@@ -11,7 +11,7 @@ const createArticle = asyncHandler(async (req, res) => {
 
     // confirm data
     if (!title || !description || !body) {
-        res.status(400).json({message: 'All fields are required'});
+        res.status(400).json({message: "All fields are required"});
     }
 
     const article = await Article.create({ title, description, body });
@@ -22,11 +22,11 @@ const createArticle = asyncHandler(async (req, res) => {
         article.tagList = tagList;
     }
 
-    await article.save();
+    await article.save()
 
     return await res.status(200).json({
         article: await article.toArticleResponse(author)
-    });
+    })
 
 });
 
@@ -41,7 +41,7 @@ const deleteArticle = asyncHandler(async (req, res) => {
 
     if (!loginUser) {
         return res.status(401).json({
-            message: 'User Not Found'
+            message: "User Not Found"
         });
     }
 
@@ -49,7 +49,7 @@ const deleteArticle = asyncHandler(async (req, res) => {
 
     if (!article) {
         return res.status(401).json({
-            message: 'Article Not Found'
+            message: "Article Not Found"
         });
     }
     // console.log(`article author is ${article.author}`)
@@ -58,12 +58,12 @@ const deleteArticle = asyncHandler(async (req, res) => {
     if (article.author.toString() === loginUser._id.toString()) {
         await Article.deleteOne({slug: slug});
         res.status(200).json({
-            message: 'Article successfully deleted!!!'
-        });
+            message: "Article successfully deleted!!!"
+        })
     } else {
         res.status(403).json({
-            message: 'Only the author can delete his article'
-        });
+            message: "Only the author can delete his article"
+        })
     }
 
 });
@@ -77,7 +77,7 @@ const favoriteArticle = asyncHandler(async (req, res) => {
 
     if (!loginUser) {
         return res.status(401).json({
-            message: 'User Not Found'
+            message: "User Not Found"
         });
     }
 
@@ -85,7 +85,7 @@ const favoriteArticle = asyncHandler(async (req, res) => {
 
     if (!article) {
         return res.status(401).json({
-            message: 'Article Not Found'
+            message: "Article Not Found"
         });
     }
     // console.log(`article info ${article}`);
@@ -108,7 +108,7 @@ const unfavoriteArticle = asyncHandler(async (req, res) => {
 
     if (!loginUser) {
         return res.status(401).json({
-            message: 'User Not Found'
+            message: "User Not Found"
         });
     }
 
@@ -116,7 +116,7 @@ const unfavoriteArticle = asyncHandler(async (req, res) => {
 
     if (!article) {
         return res.status(401).json({
-            message: 'Article Not Found'
+            message: "Article Not Found"
         });
     }
 
@@ -136,13 +136,13 @@ const getArticleWithSlug = asyncHandler(async (req, res) => {
 
     if (!article) {
         return res.status(401).json({
-            message: 'Article Not Found'
+            message: "Article Not Found"
         });
     }
 
     return res.status(200).json({
         article: await article.toArticleResponse(false)
-    });
+    })
 });
 
 const updateArticle = asyncHandler(async (req, res) => {
@@ -174,7 +174,7 @@ const updateArticle = asyncHandler(async (req, res) => {
     await target.save();
     return res.status(200).json({
         article: await target.toArticleResponse(loginUser)
-    });
+    })
 });
 
 const feedArticles = asyncHandler(async (req, res) => {
@@ -225,7 +225,7 @@ const listArticles = asyncHandler(async (req, res) => {
         offset = req.query.offset;
     }
     if (req.query.tag) {
-        query.tagList = {$in: [req.query.tag]};
+        query.tagList = {$in: [req.query.tag]}
     }
 
     if (req.query.author) {
@@ -238,14 +238,14 @@ const listArticles = asyncHandler(async (req, res) => {
     if (req.query.favorited) {
         const favoriter = await User.findOne({username: req.query.favorited}).exec();
         if (favoriter) {
-            query._id = {$in: favoriter.favouriteArticles};
+            query._id = {$in: favoriter.favouriteArticles}
         }
     }
 
     const filteredArticles = await Article.find(query)
         .limit(Number(limit))
         .skip(Number(offset))
-        .sort({createdAt: 'desc'}).exec();
+        .sort({createdAt: 'desc'}).exec()
 
     const articleCount = await Article.count(query);
 
@@ -276,4 +276,4 @@ module.exports = {
     updateArticle,
     feedArticles,
     listArticles
-};
+}

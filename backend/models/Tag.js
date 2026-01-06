@@ -11,7 +11,7 @@ const tagSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Article'
     }]
-});
+})
 
 tagSchema.plugin(uniqueValidator);
 

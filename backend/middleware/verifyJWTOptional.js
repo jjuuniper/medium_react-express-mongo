@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 const verifyJWTOptional = (req, res, next) => {
-    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const authHeader = req.headers.authorization || req.headers.Authorization
 
     if (!authHeader || !authHeader?.startsWith('Token ') || !authHeader.split(' ')[1].length) {
         req.loggedin = false;
@@ -23,7 +23,7 @@ const verifyJWTOptional = (req, res, next) => {
             req.userHashedPwd = decoded.user.password;
             next();
         }
-    );
+    )
 };
 
 module.exports = verifyJWTOptional;

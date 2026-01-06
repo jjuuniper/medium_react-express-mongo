@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const uniqueValidator = require('mongoose-unique-validator');
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -23,11 +23,11 @@ const userSchema = new mongoose.Schema({
     },
     bio: {
         type: String,
-        default: ''
+        default: ""
     },
     image: {
         type: String,
-        default: 'https://static.productionready.io/images/smiley-cyrus.jpg'
+        default: "https://static.productionready.io/images/smiley-cyrus.jpg"
     },
     favouriteArticles: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -48,17 +48,17 @@ userSchema.plugin(uniqueValidator);
 // @required valid email and password
 userSchema.methods.generateAccessToken = function() {
     const accessToken = jwt.sign({
-            'user': {
-                'id': this._id,
-                'email': this.email,
-                'password': this.password
+            "user": {
+                "id": this._id,
+                "email": this.email,
+                "password": this.password
             }
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '1d'}
+        { expiresIn: "1d"}
     );
     return accessToken;
-};
+}
 
 userSchema.methods.toUserResponse = function() {
     return {
@@ -67,7 +67,7 @@ userSchema.methods.toUserResponse = function() {
         bio: this.bio,
         image: this.image,
         token: this.generateAccessToken()
-    };
+    }
 };
 
 userSchema.methods.toProfileJSON = function (user) {
@@ -76,7 +76,7 @@ userSchema.methods.toProfileJSON = function (user) {
         bio: this.bio,
         image: this.image,
         following: user ? user.isFollowing(this._id) : false
-    };
+    }
 };
 
 userSchema.methods.isFollowing = function (id) {
@@ -111,7 +111,7 @@ userSchema.methods.isFavourite = function (id) {
         }
     }
     return false;
-};
+}
 
 userSchema.methods.favorite = function (id) {
     if(this.favouriteArticles.indexOf(id) === -1){
@@ -125,7 +125,7 @@ userSchema.methods.favorite = function (id) {
     // await article.save();
 
     return this.save();
-};
+}
 
 userSchema.methods.unfavorite = function (id) {
     if(this.favouriteArticles.indexOf(id) !== -1){

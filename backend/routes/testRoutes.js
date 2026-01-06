@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 router.get('/', (req, res) => {
-    console.log('successful!');
+    console.log("successful!");
     res.status(200);
-    res.json({message: 'successful'});
+    res.json({message: 'successful'})
 });
 
 

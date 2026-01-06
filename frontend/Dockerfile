@@ -43,10 +43,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Create non-root user for security and remove npm to reduce attack surface
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
-    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+    adduser -S nextjs -u 1001
 
 # Copy built application
 COPY --from=build /app/public ./public

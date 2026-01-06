@@ -88,6 +88,3 @@ volumes:
 networks:
   realworld-network:
     driver: bridge
-
-
-#this is a test of ci/cd workflows
