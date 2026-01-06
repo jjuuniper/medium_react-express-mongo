@@ -1,0 +1,281 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [develop, main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  pr-title-check:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^[A-Z].+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            starts with an uppercase character.
+
+  pr-size-check:
+    name: Check PR Size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate PR size
+        id: pr-size
+        run: |
+          # Get base and head commits
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          # Calculate lines changed (excluding certain files)
+          LINES_CHANGED=$(git diff --numstat $BASE_SHA..$HEAD_SHA | \
+            grep -v -E '(package-lock.json|yarn.lock|pnpm-lock.yaml|\.min\.)' | \
+            awk '{sum+=$1+$2} END {print sum}')
+
+          echo "lines_changed=$LINES_CHANGED" >> $GITHUB_OUTPUT
+          echo "Lines changed: $LINES_CHANGED"
+
+      - name: Comment if PR is large
+        if: steps.pr-size.outputs.lines_changed > 500
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const linesChanged = ${{ steps.pr-size.outputs.lines_changed }};
+            const comment = `## ⚠️ Large Pull Request Detected
+
+            This PR contains **${linesChanged} lines** of changes.
+
+            Large PRs are harder to review and more likely to introduce bugs. Consider:
+            - Breaking this PR into smaller, focused changes
+            - Ensuring the PR has a single, clear purpose
+            - Adding comprehensive tests for all changes
+
+            If this PR must remain large, please ensure:
+            - ✅ The description thoroughly explains all changes
+            - ✅ The PR is well-tested
+            - ✅ Breaking changes are clearly documented
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  coverage-comment:
+    name: Post Coverage Report
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password123
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ping: 1})' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run tests with coverage
+        working-directory: backend
+        env:
+          MONGO_HOST: localhost
+          MONGO_ROOT_USERNAME: admin
+          MONGO_ROOT_PASSWORD: password123
+          MONGO_DB_NAME: realworld
+          ACCESS_TOKEN_SECRET: test-secret-key-for-ci-testing-only
+        run: npm run test:coverage
+
+      - name: Generate coverage comment
+        id: coverage
+        run: |
+          COVERAGE=$(cat backend/coverage/coverage-summary.json | jq '.total.lines.pct')
+          STATEMENTS=$(cat backend/coverage/coverage-summary.json | jq '.total.statements.pct')
+          BRANCHES=$(cat backend/coverage/coverage-summary.json | jq '.total.branches.pct')
+          FUNCTIONS=$(cat backend/coverage/coverage-summary.json | jq '.total.functions.pct')
+
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
+          echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+          echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+
+          # Determine status emoji
+          if (( $(echo "$COVERAGE >= 15" | bc -l) )); then
+            echo "status=✅" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment coverage on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverage = parseFloat('${{ steps.coverage.outputs.coverage }}') || 0;
+            const statements = parseFloat('${{ steps.coverage.outputs.statements }}') || 0;
+            const branches = parseFloat('${{ steps.coverage.outputs.branches }}') || 0;
+            const functions = parseFloat('${{ steps.coverage.outputs.functions }}') || 0;
+            const status = '${{ steps.coverage.outputs.status }}' || '❌';
+
+            const comment = `## ${status} Test Coverage Report
+
+            | Metric | Coverage | Status |
+            |--------|----------|--------|
+            | **Lines** | ${coverage.toFixed(2)}% | ${coverage >= 15 ? '✅ Pass' : '❌ Below threshold'} |
+            | **Statements** | ${statements.toFixed(2)}% | ${statements >= 15 ? '✅' : '❌'} |
+            | **Branches** | ${branches.toFixed(2)}% | ${branches >= 15 ? '✅' : '❌'} |
+            | **Functions** | ${functions.toFixed(2)}% | ${functions >= 15 ? '✅' : '❌'} |
+
+            **Required:** 15% minimum line coverage
+
+            ${coverage < 15 ? '**Warning:** This PR does not meet the 15% coverage threshold.' : ''}
+            `;
+
+            // Find existing coverage comment
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Test Coverage Report')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                comment_id: botComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  security-summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run security checks summary
+        run: |
+          echo "Security scans are running in the main CI pipeline."
+          echo "Check the 'CI Pipeline' workflow for detailed results."
+
+      - name: Comment security reminder
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## Security Scan Summary
+
+            Security scans are running as part of the CI pipeline:
+
+            - **Secret Scanning:** TruffleHog (full history scan)
+            - **Dependency Scanning:** npm audit (high severity vulnerabilities)
+            - **SAST:** Semgrep (security-audit, nodejs, react, docker)
+            - **Container Scanning:** Trivy (scan-before-push strategy)
+
+            View detailed results in the [CI Pipeline workflow](https://github.com/${{ github.repository }}/actions/workflows/ci.yml).
+
+            **Note:** Images will only be pushed to the registry if all security scans pass.
+            `;
+
+            // Only post once when PR is opened
+            if (context.payload.action === 'opened') {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  pr-checklist:
+    name: PR Checklist Reminder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post checklist comment
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## PR Checklist
+
+            Please ensure your pull request meets the following criteria:
+
+            - [ ] PR title follows [Conventional Commits](https://www.conventionalcommits.org/) format
+            - [ ] Code changes are focused and address a single concern
+            - [ ] All tests pass locally (\`npm test\`)
+            - [ ] Test coverage is at least 80% (\`npm run test:coverage\`)
+            - [ ] Code has been linted (\`npm run lint\`)
+            - [ ] No sensitive data (secrets, credentials, API keys) in code
+            - [ ] Documentation updated (if applicable)
+            - [ ] Breaking changes are clearly documented (if applicable)
+
+            **Review the automated checks below before requesting review.**
+            `;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
