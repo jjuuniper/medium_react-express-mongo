@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@conform-to/react": "^1.2.2",
-    "@conform-to/zod": "^1.2.2",
+    "@conform-to/zod": "^1.15.1",
     "clsx": "^2.1.1",
     "ionicons": "^2.0.1",
     "next": "^15.2.4",
