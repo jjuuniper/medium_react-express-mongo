@@ -49,9 +49,9 @@ jobs:
       - name: Set image tags
         id: image-tags
         run: |
-          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:develop-${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:develop-${{ github.sha }}" >> $GITHUB_OUTPUT
+          SHORT_SHA=$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)
+          echo "BACKEND_IMAGE=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:develop-${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
+          echo "FRONTEND_IMAGE=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:develop-${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
 
       - name: Create namespace with Helm ownership
@@ -84,9 +84,9 @@ jobs:
             -f ./infrastructure/helm/realworld/values.yaml \
             -f ./infrastructure/helm/realworld/values-staging.yaml \
             --set image.backend.repository=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }} \
-            --set image.backend.tag=develop-${{ github.sha }} \
+            --set image.backend.tag=develop-${{ github.event.workflow_run.head_sha }} \
             --set image.frontend.repository=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }} \
-            --set image.frontend.tag=develop-${{ github.sha }} \
+            --set image.frontend.tag=develop-${{ github.event.workflow_run.head_sha }} \
             --wait \
             --timeout 5m
 
