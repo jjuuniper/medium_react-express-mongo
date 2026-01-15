@@ -56,7 +56,7 @@ articleSchema.methods.updateFavoriteCount = async function () {
     this.favouritesCount = favoriteCount;
 
     return this.save();
-}
+};
 
 // user is the logged-in user
 articleSchema.methods.toArticleResponse = async function (user) {
@@ -72,8 +72,8 @@ articleSchema.methods.toArticleResponse = async function (user) {
         favorited: user ? user.isFavourite(this._id) : false,
         favoritesCount: this.favouritesCount,
         author:  authorObj.toProfileJSON(user)
-    }
-}
+    };
+};
 
 articleSchema.methods.addComment = function (commentId) {
     if(this.comments.indexOf(commentId) === -1){

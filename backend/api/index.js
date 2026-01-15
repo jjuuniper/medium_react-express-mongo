@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
-const path = require('path')
+const path = require('path');
 const PORT = process.env.PORT || 4000;
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -61,11 +61,11 @@ mongoose.connection.on('error', err => {
     console.log(err);
     // Update MongoDB connection gauge
     mongodbConnectionGauge.set(0);
-})
+});
 
 mongoose.connection.on('disconnected', () => {
     // Update MongoDB connection gauge
     mongodbConnectionGauge.set(0);
-})
+});
 
 module.exports = app;

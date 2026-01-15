@@ -6,11 +6,12 @@ beforeAll(async () => {
     const username = process.env.MONGO_ROOT_USERNAME || 'admin';
     const password = process.env.MONGO_ROOT_PASSWORD || 'password123';
     const dbName = process.env.MONGO_DB_NAME || 'realworld';
+    const mongoHost = process.env.MONGO_HOST || 'mongodb';
 
-    console.log('MongoDB credentials:', { username, dbName });
+    console.log('MongoDB credentials:', { username, dbName, host: mongoHost });
     console.log('Password length:', password.length);
 
-    const mongoUri = `mongodb://${encodeURIComponent(username)}:${encodeURIComponent(password)}@mongodb:27017/${dbName}_test?authSource=admin`;
+    const mongoUri = `mongodb://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${mongoHost}:27017/${dbName}_test?authSource=admin`;
 
     console.log('Connecting to test database...');
     await mongoose.connect(mongoUri, {
