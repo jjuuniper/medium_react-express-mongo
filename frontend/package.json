@@ -9,6 +9,7 @@
     "lint": "next lint",
     "prepare": "husky",
     "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "openapi-generate": "openapi-typescript ./api/openapi.yml --output ./src/generated/apiSchema.generated.d.ts"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "@conform-to/zod": "^1.2.2",
     "clsx": "^2.1.1",
     "ionicons": "^2.0.1",
+    "isomorphic-dompurify": "2.16.0",
     "next": "^15.2.4",
     "react": "^18.3",
     "react-dom": "^18.3",
@@ -36,7 +38,7 @@
     "lint-staged": "^15.2.10",
     "openapi-typescript": "^7.4.1",
     "prettier": "^3.3.3",
-    "typescript": "^5.5.4"
+    "typescript": "5.9.3"
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
