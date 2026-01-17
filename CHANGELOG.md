@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.1...v1.0.2) (2026-01-17)
+
+
+### Bug Fixes
+
+* Exclude Dependabot PRs from title validation check ([50bfd65](https://github.com/jjuuniper/medium_react-express-mongo/commit/50bfd65624efa187121effcdeb5b6928124126cb)), closes [#67](https://github.com/jjuuniper/medium_react-express-mongo/issues/67) [#68](https://github.com/jjuuniper/medium_react-express-mongo/issues/68) [#69](https://github.com/jjuuniper/medium_react-express-mongo/issues/69) [#70](https://github.com/jjuuniper/medium_react-express-mongo/issues/70)
+
 ## [1.0.1](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.0...v1.0.1) (2026-01-16)
 
 
