@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.4...v1.0.5) (2026-01-19)
+
+
+### Bug Fixes
+
+* Implement two-stage Docker image tagging to resolve version timing issues ([39cf85b](https://github.com/jjuuniper/medium_react-express-mongo/commit/39cf85b4b14eec3a00cdb87c0b825d3877e2284f))
+
 ## [1.0.4](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.3...v1.0.4) (2026-01-19)
 
 
