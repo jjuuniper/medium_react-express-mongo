@@ -827,6 +827,29 @@ Triggers: Push to `main` branch
 - All security scans must pass
 - PR title must follow Conventional Commits
 
+### Versioning Strategy
+
+**Version Source of Truth: Git Tags**
+
+This project uses **Git tags** (managed by semantic-release) as the single source of truth for versioning, not package.json files.
+
+**Why Git tags, not package.json?**
+- This is a containerized application, not an npm package
+- Semantic-release automatically manages Git tags based on commit messages
+- Docker image versions should match Git release versions
+- Simpler workflow with fewer places to update versions
+
+**package.json version:**
+- Set to `0.0.0-development` in both backend and frontend
+- This version is NOT used for Docker image tagging
+- Only used for local development identification
+
+**How versions are determined:**
+- **Develop branch**: Uses `develop` tag (no semantic versioning)
+- **Main branch**: Uses Git tag from semantic-release (e.g., `v1.2.3` → `1.2.3`)
+- CI workflow runs: `git describe --tags --abbrev=0` to get the latest Git tag
+- Docker images are tagged with the Git tag version
+
 ### Image Tagging Strategy
 
 **Develop Branch:**
@@ -837,13 +860,21 @@ ghcr.io/jjuuniper/medium_react-express-mongo/frontend:develop
 ghcr.io/jjuuniper/medium_react-express-mongo/frontend:develop-abc1234
 ```
 
-**Main Branch:**
+**Main Branch (versions from Git tags):**
 ```
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:1.2.3
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:1.2.3-abc1234
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:main
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:latest
 ```
+
+**Release Process:**
+1. Merge to `main` with conventional commit message (e.g., `feat: Add feature`)
+2. Release workflow runs semantic-release
+3. Semantic-release analyzes commits and creates Git tag (e.g., `v1.2.3`)
+4. CI workflow detects Git tag and builds Docker images tagged as `1.2.3`
+5. Images pushed to registry with version tag
+6. GitHub Release created automatically with CHANGELOG
 
 ### Deployment Workflow
 
