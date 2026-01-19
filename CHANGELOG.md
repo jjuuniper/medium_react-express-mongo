@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.2...v1.0.3) (2026-01-19)
+
+
+### Bug Fixes
+
+* Use Git tags instead of package.json for Docker image versioning ([f93f3a7](https://github.com/jjuuniper/medium_react-express-mongo/commit/f93f3a7a30f8975bf91df2ad66c9c540fb332f4f))
+
 ## [1.0.2](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.1...v1.0.2) (2026-01-17)
 
 
