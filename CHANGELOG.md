@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.3...v1.0.4) (2026-01-19)
+
+
+### Bug Fixes
+
+* Fetch Git tags in CI workflow push-images job ([0a08dde](https://github.com/jjuuniper/medium_react-express-mongo/commit/0a08dde47246dc43baa165bbefc345ef8a682b27))
+
 ## [1.0.3](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.2...v1.0.3) (2026-01-19)
 
 
