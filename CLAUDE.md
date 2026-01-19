@@ -846,35 +846,48 @@ This project uses **Git tags** (managed by semantic-release) as the single sourc
 
 **How versions are determined:**
 - **Develop branch**: Uses `develop` tag (no semantic versioning)
-- **Main branch**: Uses Git tag from semantic-release (e.g., `v1.2.3` → `1.2.3`)
-- CI workflow runs: `git describe --tags --abbrev=0` to get the latest Git tag
-- Docker images are tagged with the Git tag version
+- **Main branch**: CI pushes generic tags (`main`, `latest`), Release workflow adds semantic version tags
+- Semantic-release creates Git tags (e.g., `v1.2.3`)
+- Release workflow pulls `latest` images and re-tags with version number
 
 ### Image Tagging Strategy
 
-**Develop Branch:**
+**Two-Stage Tagging Process:**
+
+**Stage 1 - CI Workflow (Fast):**
 ```
+# Develop branch
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:develop
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:develop-abc1234
-ghcr.io/jjuuniper/medium_react-express-mongo/frontend:develop
-ghcr.io/jjuuniper/medium_react-express-mongo/frontend:develop-abc1234
-```
 
-**Main Branch (versions from Git tags):**
-```
-ghcr.io/jjuuniper/medium_react-express-mongo/backend:1.2.3
-ghcr.io/jjuuniper/medium_react-express-mongo/backend:1.2.3-abc1234
+# Main branch (generic tags)
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:main
 ghcr.io/jjuuniper/medium_react-express-mongo/backend:latest
 ```
 
+**Stage 2 - Release Workflow (Version Tags):**
+```
+# Release workflow pulls 'latest' and re-tags with semantic version
+ghcr.io/jjuuniper/medium_react-express-mongo/backend:1.2.3
+ghcr.io/jjuuniper/medium_react-express-mongo/frontend:1.2.3
+```
+
+**Why Two Stages?**
+- CI and Release workflows run in parallel
+- CI builds/pushes images with generic tags quickly
+- Release workflow creates Git tag, then pulls and re-tags images with version
+- Prevents timing issues where CI can't see the Git tag yet
+- Standard pattern used by Kubernetes, Node.js, and other major projects
+
 **Release Process:**
 1. Merge to `main` with conventional commit message (e.g., `feat: Add feature`)
-2. Release workflow runs semantic-release
-3. Semantic-release analyzes commits and creates Git tag (e.g., `v1.2.3`)
-4. CI workflow detects Git tag and builds Docker images tagged as `1.2.3`
-5. Images pushed to registry with version tag
+2. **CI workflow** builds and pushes images tagged as `main` and `latest`
+3. **Release workflow** (parallel) runs semantic-release and creates Git tag (e.g., `v1.2.3`)
+4. **Release workflow** pulls `latest` images and re-tags them as `1.2.3`
+5. **Release workflow** pushes version-tagged images to registry
 6. GitHub Release created automatically with CHANGELOG
+
+**Result:** Both `latest` and `1.2.3` point to the same Docker image
 
 ### Deployment Workflow
 
