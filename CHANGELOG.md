@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.5...v1.0.6) (2026-01-19)
+
+
+### Bug Fixes
+
+* Add GHCR authentication to production deployment workflow ([49e37a5](https://github.com/jjuuniper/medium_react-express-mongo/commit/49e37a5947d9fb3e73604bd6ecb1bd0adbb3a680))
+
 ## [1.0.5](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.4...v1.0.5) (2026-01-19)
 
 
