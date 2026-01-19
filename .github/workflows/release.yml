@@ -13,6 +13,7 @@ jobs:
       contents: write        # Create commits, tags, and GitHub releases
       issues: write          # Comment on issues (semantic-release/github plugin)
       pull-requests: write   # Comment on PRs (semantic-release/github plugin)
+      packages: write        # Push Docker images to GHCR
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     steps:
       - name: Checkout code
@@ -128,6 +129,40 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "New version: $VERSION"
 
+      - name: Log in to GitHub Container Registry
+        if: steps.version.outputs.version != 'unknown'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag Docker images with version
+        if: steps.version.outputs.version != 'unknown'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          REGISTRY: ghcr.io
+          BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
+          FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
+        run: |
+          echo "Tagging Docker images with version: $VERSION"
+
+          # Pull latest images (pushed by CI workflow)
+          docker pull $BACKEND_IMAGE:latest
+          docker pull $FRONTEND_IMAGE:latest
+
+          # Tag with semantic version
+          docker tag $BACKEND_IMAGE:latest $BACKEND_IMAGE:$VERSION
+          docker tag $FRONTEND_IMAGE:latest $FRONTEND_IMAGE:$VERSION
+
+          # Push version tags
+          docker push $BACKEND_IMAGE:$VERSION
+          docker push $FRONTEND_IMAGE:$VERSION
+
+          echo "✅ Images tagged and pushed:"
+          echo "  - $BACKEND_IMAGE:$VERSION"
+          echo "  - $FRONTEND_IMAGE:$VERSION"
+
       - name: Create release summary
         if: steps.version.outputs.version != 'unknown'
         run: |
@@ -139,10 +174,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. GitHub Release has been created automatically" >> $GITHUB_STEP_SUMMARY
-          echo "2. CHANGELOG.md has been updated" >> $GITHUB_STEP_SUMMARY
-          echo "3. Docker images with version tags are available in GitHub Container Registry" >> $GITHUB_STEP_SUMMARY
-          echo "4. To deploy to production, run the 'Deploy to Production' workflow manually" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ GitHub Release created" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ CHANGELOG.md updated" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Docker images tagged with version ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "4. To deploy to production, run the 'Deploy to Production' workflow" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Production Deployment:**" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
