@@ -429,7 +429,10 @@ jobs:
             echo "BACKEND_TAGS=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:develop,${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:develop-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "FRONTEND_TAGS=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:develop,${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:develop-${{ github.sha }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            VERSION=$(cat backend/package.json | jq -r '.version')
+            # Get version from Git tags (managed by semantic-release)
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+            echo "Using Git tag version: $VERSION"
             echo "BACKEND_TAGS=${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${VERSION},${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${VERSION}-${{ github.sha }},${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:main,${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
             echo "FRONTEND_TAGS=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${VERSION},${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${VERSION}-${{ github.sha }},${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:main,${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
           fi

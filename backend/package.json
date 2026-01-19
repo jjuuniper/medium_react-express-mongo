@@ -1,6 +1,6 @@
 {
   "name": "realworld-node-express-mongodb-javascript",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "realWorld Project",
   "main": "api/index.js",
   "scripts": {
