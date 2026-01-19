@@ -397,6 +397,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all tags
+          fetch-tags: true  # Explicitly fetch tags (needed to read version from Git tags)
 
       - name: Download backend image artifact
         uses: actions/download-artifact@v4
