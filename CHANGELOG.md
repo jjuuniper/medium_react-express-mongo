@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.6...v1.0.7) (2026-01-22)
+
+
+### Bug Fixes
+
+* Inject production secrets via Helm --set flags ([84d6a6b](https://github.com/jjuuniper/medium_react-express-mongo/commit/84d6a6bb6c67b8dcd44e963d0d6bc7ea7579eb45))
+
 ## [1.0.6](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.5...v1.0.6) (2026-01-19)
 
 
