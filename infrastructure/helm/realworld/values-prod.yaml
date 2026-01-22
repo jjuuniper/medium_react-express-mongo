@@ -12,6 +12,9 @@ image:
   frontend:
     pullPolicy: Always
 
+imagePullSecrets:
+  - name: ghcr-secret
+
 mongodb:
   storage: 20Gi
   resources:
