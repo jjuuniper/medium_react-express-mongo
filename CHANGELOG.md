@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.7...v1.0.8) (2026-01-22)
+
+
+### Bug Fixes
+
+* Add imagePullSecrets to production values ([bd8312b](https://github.com/jjuuniper/medium_react-express-mongo/commit/bd8312b939867371a990c8966006cb9695215523))
+
 ## [1.0.7](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.6...v1.0.7) (2026-01-22)
 
 
