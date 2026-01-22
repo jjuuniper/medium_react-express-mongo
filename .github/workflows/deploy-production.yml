@@ -127,6 +127,9 @@ jobs:
             --set image.backend.tag=$VERSION \
             --set image.frontend.repository=${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }} \
             --set image.frontend.tag=$VERSION \
+            --set mongodb.auth.username="${{ secrets.MONGO_USERNAME }}" \
+            --set mongodb.auth.password="${{ secrets.MONGO_PASSWORD }}" \
+            --set backend.env.jwtSecret="${{ secrets.JWT_SECRET }}" \
             --wait \
             --timeout 10m
 
