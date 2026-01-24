@@ -1,3 +1,10 @@
+## [1.1.0](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.8...v1.1.0) (2026-01-24)
+
+
+### Features
+
+* add /api/health endpoint for deployment verification ([fdc6058](https://github.com/jjuuniper/medium_react-express-mongo/commit/fdc6058fe3af1f0ad0260527c09dc31e1453d148))
+
 ## [1.0.8](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.7...v1.0.8) (2026-01-22)
 
 
