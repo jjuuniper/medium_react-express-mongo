@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.1.0...v1.1.1) (2026-01-24)
+
+
+### Bug Fixes
+
+* make Release workflow wait for CI Pipeline to complete ([46c9fca](https://github.com/jjuuniper/medium_react-express-mongo/commit/46c9fcae6a6414123b047e0cc4c50f47a35bf972))
+
 ## [1.1.0](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.0.8...v1.1.0) (2026-01-24)
 
 
