@@ -46,7 +46,15 @@ app.use('/api/articles', require('../routes/commentRoutes'));
 // metrics route - Prometheus endpoint
 app.use('/metrics', require('../routes/metricsRoutes'));
 
-
+// Health check endpoint for Kubernetes probes and deployment verification
+app.get('/api/health', (req, res) => {
+    const status = mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy';
+    const statusCode = status === 'healthy' ? 200 : 503;
+    res.status(statusCode).json({
+        status,
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    });
+});
 
 mongoose.connection.once('open', () => {
     console.log('Connected to MongoDB');
