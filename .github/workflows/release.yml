@@ -1,7 +1,10 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
     branches:
       - main
 
@@ -14,13 +17,15 @@ jobs:
       issues: write          # Comment on issues (semantic-release/github plugin)
       pull-requests: write   # Comment on PRs (semantic-release/github plugin)
       packages: write        # Push Docker images to GHCR
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    # Only run if CI completed successfully and not a [skip ci] commit
+    if: ${{ github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.head_commit.message, '[skip ci]') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history for changelog generation
           persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
