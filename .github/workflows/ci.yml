@@ -165,8 +165,10 @@ jobs:
 
       - name: Run TruffleHog
         uses: trufflesecurity/trufflehog@main
-        with:
-          extra_args: --only-verified
+        # NOTE: --only-verified temporarily removed to test secret scanning
+        # TODO: Restore --only-verified after testing is complete
+        # with:
+        #   extra_args: --only-verified
 
   security-dependencies:
     name: Security - Dependency Scanning
