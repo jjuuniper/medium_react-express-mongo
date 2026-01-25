@@ -1,7 +1,10 @@
 .env
 /backend/coverage
 /.claude
-monitoringImplementation.md
+
+# Documentation (local only)
+/documentation/
+CLAUDE.md
 
 # Security: Don't commit secrets
 values-secrets.yaml
