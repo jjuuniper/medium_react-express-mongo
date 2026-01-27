@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # MongoDB Database Service (same as production)
   mongodb:
@@ -55,7 +53,7 @@ services:
         condition: service_healthy
     networks:
       - realworld-network-dev
-    command: ["npm", "run", "dev"]
+    command: ["npx", "nodemon", "--legacy-watch", "api/index.js"]
 
   # Next.js Frontend Service (Development with hot reload)
   frontend:
@@ -69,6 +67,7 @@ services:
     environment:
       NODE_ENV: development
       API_BASE_URL: http://app:4000/api
+      WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
     volumes:
@@ -95,7 +94,7 @@ services:
       MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
       MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
       MONGO_DB_NAME: ${MONGO_DB_NAME:-realworld}
-      DATABASE_URI: mongodb://mongodb:27017/realworld_test
+      DATABASE_URI: mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${MONGO_DB_NAME:-realworld}_test?authSource=admin
     volumes:
       - ./backend:/app
       - /app/node_modules
