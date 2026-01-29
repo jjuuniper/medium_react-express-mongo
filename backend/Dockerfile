@@ -2,6 +2,8 @@
 
 # Base stage - common setup
 FROM node:18-alpine AS base
+# Upgrade OpenSSL to patch CVE-2025-15467 and CVE-2025-69419
+RUN apk update && apk upgrade --no-cache libcrypto3 libssl3
 WORKDIR /app
 COPY package*.json ./
 
