@@ -1,3 +1,13 @@
+## [1.1.2](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.1.1...v1.1.2) (2026-02-01)
+
+
+### Bug Fixes
+
+* Correct Docker Compose dev setup and enable hot reload on Windows ([84b21d3](https://github.com/jjuuniper/medium_react-express-mongo/commit/84b21d3f343923f0d04e7995481978e712604e58))
+* Only deploy to staging on push events to develop ([2ce9002](https://github.com/jjuuniper/medium_react-express-mongo/commit/2ce900253c741db8b010f0e946463f8729d8f251))
+* Override fast-xml-parser to 5.3.4 to fix vulnerabilities ([c54f153](https://github.com/jjuuniper/medium_react-express-mongo/commit/c54f1532f632a79a08bf2ef227ca64cca59779d3))
+* Patch OpenSSL CVE-2025-15467 and CVE-2025-69419 in Docker images ([f7b6085](https://github.com/jjuuniper/medium_react-express-mongo/commit/f7b6085a4522cb463aba128184534213d3f64bd6))
+
 ## [1.1.1](https://github.com/jjuuniper/medium_react-express-mongo/compare/v1.1.0...v1.1.1) (2026-01-24)
 
 
