@@ -31,7 +31,7 @@ jobs:
           ref: main  # Always deploy from main branch
 
       - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
+        uses: azure/setup-kubectl@v5
         with:
           version: 'latest'
 
